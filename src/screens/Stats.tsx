@@ -69,7 +69,7 @@ export function Stats() {
       <ConsistencyTracker />
 
       {/* Gap history graph — all three lines */}
-      <Panel accent="gold" title="LEDGER HISTORY · 21 DAYS">
+      <Panel accent="gold" title="LEDGER HISTORY · 21 DAYS" dataTour="stats">
         <GapGraph data={history} max={max} />
         <div className="flex justify-between font-term text-sm text-dim mt-1">
           <span><span className="text-you">▬</span> {s.playerName}</span>

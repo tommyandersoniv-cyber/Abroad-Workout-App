@@ -72,7 +72,7 @@ export function Today() {
       </PixelButton>
 
       {/* Daily habits — tap to toggle */}
-      <Panel accent="you" title="DAILY HABITS">
+      <Panel accent="you" title="DAILY HABITS" dataTour="habits">
         <div className="space-y-1">
           {today.daily.map((i) => (
             <HabitRow
@@ -88,7 +88,7 @@ export function Today() {
       </Panel>
 
       {/* Weekly routines — calls & runs pinned to days; pushable with no penalty */}
-      <Panel accent="rival" title="WEEKLY ROUTINES">
+      <Panel accent="rival" title="WEEKLY ROUTINES" dataTour="routines">
         <div className="space-y-2">
           {today.dayItems.map((i) =>
             i.activity.id === 'run' ? (

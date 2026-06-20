@@ -21,7 +21,13 @@ export function Signup() {
 
   return (
     <div className="absolute inset-0 z-[60] bg-night crt overflow-y-auto no-scrollbar">
-      <div className="min-h-full flex flex-col justify-center p-5 space-y-4 anim-rise">
+      <div
+        className="min-h-full flex flex-col justify-center p-5 space-y-4 anim-rise"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top) + 1.25rem)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)',
+        }}
+      >
         <div className="text-center">
           <div className="flex justify-center gap-3 mb-3">
             <Sprite who="hero" stage={2} px={6} className="anim-bob" />

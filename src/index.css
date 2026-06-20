@@ -207,6 +207,32 @@ svg {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
+/* Tutorial spotlight ring */
+@keyframes tourpulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--color-gold), 0 0 12px 3px rgba(255, 211, 77, 0.45); }
+  50% { box-shadow: 0 0 0 3px var(--color-gold), 0 0 22px 7px rgba(255, 211, 77, 0.8); }
+}
+.tour-ring {
+  border: 2px solid var(--color-gold);
+  animation: tourpulse 1.2s ease-in-out infinite;
+  transition: top 0.3s, left 0.3s, width 0.3s, height 0.3s;
+}
+/* The element being explained zooms forward so it's unmistakable. */
+.tour-zoom {
+  position: relative;
+  z-index: 54;
+  transform: scale(1.06);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* Dim everything that isn't the spotlight, so attention snaps to it. */
+.tour-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 4, 15, 0.66);
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
 /* Pixel checkbox box */
 .pixbox {
   width: 22px;

@@ -41,7 +41,7 @@ export function Reports() {
 
   return (
     <div className="p-3 space-y-3 anim-rise">
-      <Panel accent="gold" title="REPORTS">
+      <Panel accent="gold" title="REPORTS" dataTour="reports">
         <div className="grid grid-cols-3 gap-1">
           {TABS.map((t) => (
             <button

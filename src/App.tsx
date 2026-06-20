@@ -106,12 +106,15 @@ function TopBar() {
   }, [you, ymmot, tommy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <header className="shrink-0 flex items-center justify-between px-3 py-2 border-b-3 border-line bg-panel z-40">
+    <header
+      className="shrink-0 flex items-center justify-between px-3 py-2 border-b-3 border-line bg-panel z-40"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}
+    >
       <div className="flex items-center gap-2">
         <button className="font-pixel text-[12px] text-gold" onClick={() => useNav.getState().go('arena')}>
           RIVAL
         </button>
-        <span className="font-pixel text-[8px] text-cyan tabular-nums" title="internal clock (24h)">{clock}</span>
+        <span className="font-pixel text-[8px] text-cyan tabular-nums" title="internal clock (24h)" data-tour="clock">{clock}</span>
       </div>
       <div className="flex items-center gap-2 font-pixel text-[8px]">
         <span className="text-you">{you.toLocaleString()}</span>
@@ -160,7 +163,10 @@ function BottomNav() {
           </div>
         </div>
       )}
-      <nav className="shrink-0 grid grid-cols-5 border-t-3 border-line bg-panel z-30">
+      <nav
+        className="shrink-0 grid grid-cols-5 border-t-3 border-line bg-panel z-30"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {NAV.map((n) => (
           <button
             key={n.id}

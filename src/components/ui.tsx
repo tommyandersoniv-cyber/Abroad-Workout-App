@@ -6,16 +6,18 @@ export function Panel({
   className = '',
   title,
   accent,
+  dataTour,
 }: {
   children: ReactNode
   className?: string
   title?: string
   accent?: 'you' | 'rival' | 'gold'
+  dataTour?: string
 }) {
   const accentColor =
     accent === 'you' ? 'text-you' : accent === 'rival' ? 'text-rival' : accent === 'gold' ? 'text-gold' : 'text-dim'
   return (
-    <section className={`panel relative p-3 ${className}`}>
+    <section className={`panel relative p-3 ${className}`} data-tour={dataTour}>
       {title && (
         <h2 className={`font-pixel text-[9px] mb-2 ${accentColor}`}>{title}</h2>
       )}

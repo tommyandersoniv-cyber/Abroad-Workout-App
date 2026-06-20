@@ -29,7 +29,7 @@ export function ExerciseLibrary() {
 
   return (
     <div className="p-3 space-y-3 anim-rise">
-      <Panel accent="you" title="EXERCISE LIBRARY">
+      <Panel accent="you" title="EXERCISE LIBRARY" dataTour="library">
         <input
           placeholder="search movements…"
           value={q}

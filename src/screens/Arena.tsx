@@ -58,8 +58,8 @@ export function Arena() {
     <div className="p-3 space-y-3 anim-rise">
       {/* ── Three-way clash: ME vs YMMOT (70%) vs TOMMY (90%) ────────────── */}
       <Panel className="crt overflow-hidden">
-        <div className="text-center font-pixel text-[11px] text-cyan mb-2">DAY {day}</div>
-        <div className="grid grid-cols-3 items-end gap-1 pt-1">
+        <div className="text-center font-pixel text-[11px] text-cyan mb-2" data-tour="day">DAY {day}</div>
+        <div className="grid grid-cols-3 items-end gap-1 pt-1" data-tour="lineup">
           <Fighter who="hero" stage={meStage} name={s.playerName} xp={you} tone="text-you" caption={TIER_NAMES[meStage]} />
           <Fighter who="rival" stage={YMMOT_STAGE} name={s.ymmotName} xp={ymmot} tone="text-ymmot" caption="Mr. Consistent" />
           <Fighter who="tommy" stage={TOMMY_STAGE} name={s.rival.name} xp={tommy} tone="text-tommy" caption="LOCKED-IN!" flip />
@@ -76,7 +76,7 @@ export function Arena() {
       </Panel>
 
       {/* ── The GAP — both rivals, side by side (Ymmot left · Tommy right) ── */}
-      <Panel className="py-4">
+      <Panel className="py-4" dataTour="gap">
         <div className="text-center font-term text-dim uppercase tracking-widest text-sm">The Gap</div>
         <div className="grid grid-cols-2 gap-3 mt-2 items-start">
           <GapColumn name={s.ymmotName} sub="70%" gap={gapY} delta={deltas.ymmot} tone="text-ymmot" />

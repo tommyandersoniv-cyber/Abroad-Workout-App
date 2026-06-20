@@ -133,7 +133,7 @@ export function WorkoutPlayer() {
       </Panel>
 
       {/* current exercise */}
-      <Panel className="crt">
+      <Panel className="crt" dataTour="player">
         <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
           <div>
             <h2 className="font-pixel text-[11px] text-you leading-relaxed">{ex?.name}</h2>
