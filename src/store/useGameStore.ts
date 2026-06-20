@@ -1,0 +1,465 @@
+// ─────────────────────────────────────────────────────────────────────────
+// The store — integration layer between the pure engine and the UI.
+// Persisted to localStorage. Holds only *facts* (the log, the clock offset,
+// config); every total is derived from the engine on read, never stored.
+// ─────────────────────────────────────────────────────────────────────────
+
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import type { Difficulty, LogEntry, RivalConfig } from '../engine'
+import {
+  HOLD_FRACTION,
+  earnFor,
+  endOfDay,
+  endOfWeek,
+  occurrenceKey,
+  playerXP as sumXP,
+  resolveMisses,
+  rivalXP as engineRivalXP,
+  maxXP,
+} from '../engine'
+import { ACTIVITY_BY_ID } from '../seed/activities'
+import { buildSeedLog, computeStartDate, DEFAULT_RIVAL } from '../seed'
+import { RUN_WEEKDAYS } from '../seed/social'
+import { MS_DAY, MS_WEEK, startOfDay, startOfWeek, weekday, dateKey } from '../engine/time'
+
+export interface Settings {
+  allowNegative: boolean
+  sound: boolean
+  /** Adaptive-tier average window cache is recomputed live; nothing to persist. */
+}
+
+interface GameState {
+  seeded: boolean
+  startMs: number
+  log: LogEntry[]
+  lastResolvedAt: number
+  rival: RivalConfig // "Tommy" — the 90% locked-in version
+  ymmotName: string // "Ymmot" — the 70% human-achievable version
+  settings: Settings
+  demoOffsetMs: number
+  playerName: string
+  playerSpriteId: string
+  /** highest completed report index the user has acknowledged, per cadence */
+  reportsSeen: { week: number; month: number; year: number }
+  /** pushed calls/runs: `${activityId}@${originalDateKey}` → new display dateKey */
+  deferrals: Record<string, string>
+  /** extra miles carried onto a run day (its dateKey) by pushing earlier runs */
+  runCarry: Record<string, number>
+
+  // lifecycle
+  init: () => void
+  resolve: () => void
+  now: () => number
+
+  // logging
+  isLoggedToday: (activityId: string) => boolean
+  toggleActivity: (activityId: string) => void
+  toggleScheduled: (activityId: string, key: string) => void
+  pushItem: (activityId: string, key: string) => void
+  logRun: (miles: number, key?: string) => 'banked' | 'under-target'
+  logExtra: () => void
+  completeWorkout: () => void
+
+  // config
+  setDifficulty: (d: Difficulty) => void
+  setRival: (patch: Partial<RivalConfig>) => void
+  setYmmotName: (name: string) => void
+  setPlayer: (patch: { name?: string; spriteId?: string }) => void
+  setAllowNegative: (b: boolean) => void
+  toggleSound: () => void
+  markReportsSeen: () => void
+
+  // demo controls
+  advanceClock: (ms: number) => void
+  skipToTonight: () => void
+  advanceWeek: () => void
+  resetToSeed: () => void
+}
+
+/** Hold fraction for the current difficulty (Adaptive trails your 4-wk avg by 10%). */
+export function holdFractionFor(state: GameState): number {
+  const d = state.rival.difficulty
+  if (d !== 'adaptive') return HOLD_FRACTION[d]
+  // Adaptive: rival = 90% of your trailing 4-week earning pace, expressed as a
+  // fraction of max. Approximate via your realized fraction over the last 4 weeks.
+  const now = realNow(state)
+  const fourWeeksAgo = Math.max(state.startMs, now - 4 * MS_WEEK)
+  const you = sumXP(state.log.filter((e) => e.at <= now && e.at >= fourWeeksAgo))
+  const max = Math.max(
+    1,
+    maxXP(catalog(), Math.max(state.startMs, fourWeeksAgo), now),
+  )
+  return Math.min(0.95, Math.max(0.3, (you / max) * 0.9))
+}
+
+function realNow(state: GameState): number {
+  return Date.now() + state.demoOffsetMs
+}
+function catalog() {
+  return Object.values(ACTIVITY_BY_ID)
+}
+
+/** The dateKey of the next scheduled run day strictly after `key`'s date. */
+function nextRunDayKey(key: string): string {
+  const [y, m, d] = key.split('-').map(Number)
+  const base = new Date(y, m - 1, d).getTime()
+  for (let i = 1; i <= 14; i++) {
+    const t = base + i * MS_DAY
+    if (RUN_WEEKDAYS.includes(weekday(t))) return dateKey(t)
+  }
+  return dateKey(base + 2 * MS_DAY)
+}
+
+export const useGameStore = create<GameState>()(
+  persist(
+    (set, get) => ({
+      seeded: false,
+      startMs: 0,
+      log: [],
+      lastResolvedAt: 0,
+      rival: DEFAULT_RIVAL,
+      ymmotName: 'Ymmot',
+      settings: { allowNegative: true, sound: false },
+      demoOffsetMs: 0,
+      playerName: 'ME',
+      playerSpriteId: 'hero',
+      reportsSeen: { week: 0, month: 0, year: 0 },
+      deferrals: {},
+      runCarry: {},
+
+      now: () => realNow(get()),
+
+      init: () => {
+        const s = get()
+        if (!s.seeded) {
+          const now = Date.now()
+          const startMs = computeStartDate(now)
+          const log = buildSeedLog(startMs, now)
+          set({ seeded: true, startMs, log, lastResolvedAt: startMs, demoOffsetMs: 0 })
+        }
+        // Migrate older default names → the three-line model (me / Ymmot / Tommy).
+        if (s.rival.name === 'GHOST' || s.rival.name === 'YOU')
+          set({ rival: { ...get().rival, name: 'Tommy' } })
+        if (s.playerName === 'YOU') set({ playerName: 'ME' })
+        if (!s.ymmotName) set({ ymmotName: 'Ymmot' })
+        get().resolve()
+      },
+
+      resolve: () => {
+        const s = get()
+        if (!s.seeded) return
+        const now = realNow(s)
+        const { misses, resolvedAt } = resolveMisses(
+          catalog(),
+          s.log,
+          s.startMs,
+          s.lastResolvedAt,
+          now,
+          new Set(Object.keys(s.deferrals)), // pushed occurrences never penalize
+        )
+        if (misses.length > 0 || resolvedAt !== s.lastResolvedAt) {
+          // De-dupe by id so repeated resolves never double-count.
+          const have = new Set(s.log.map((e) => e.id))
+          const fresh = misses.filter((m) => !have.has(m.id))
+          set({ log: [...s.log, ...fresh], lastResolvedAt: resolvedAt })
+        }
+      },
+
+      isLoggedToday: (activityId) => {
+        const s = get()
+        const a = ACTIVITY_BY_ID[activityId]
+        if (!a) return false
+        const key = occurrenceKey(a, realNow(s))
+        return s.log.some(
+          (e) => e.activityId === activityId && e.dateKey === key && e.status === 'completed',
+        )
+      },
+
+      toggleActivity: (activityId) => {
+        const s = get()
+        const a = ACTIVITY_BY_ID[activityId]
+        if (!a || a.unit === 'per_mile' || a.repeatable) return
+        const now = realNow(s)
+        const key = occurrenceKey(a, now)
+        const existing = s.log.find(
+          (e) => e.activityId === activityId && e.dateKey === key && e.status === 'completed',
+        )
+        if (existing) {
+          set({ log: s.log.filter((e) => e.id !== existing.id) })
+        } else {
+          const entry: LogEntry = {
+            id: `log:${activityId}:${key}:${now}`,
+            activityId,
+            dateKey: key,
+            value: 1,
+            xp: a.xp,
+            status: 'completed',
+            at: now,
+          }
+          set({ log: [...s.log, entry] })
+        }
+      },
+
+      completeWorkout: () => {
+        const s = get()
+        if (s.isLoggedToday('workout')) return
+        get().toggleActivity('workout')
+      },
+
+      // Toggle a day-pinned scheduled item (e.g. a phone call) under a specific
+      // occurrence key, so it works whether logged on its day or a pushed day.
+      toggleScheduled: (activityId, key) => {
+        const s = get()
+        const a = ACTIVITY_BY_ID[activityId]
+        if (!a) return
+        const now = realNow(s)
+        const existing = s.log.find(
+          (e) => e.activityId === activityId && e.dateKey === key && e.status === 'completed',
+        )
+        if (existing) {
+          set({ log: s.log.filter((e) => e.id !== existing.id) })
+        } else {
+          set({
+            log: [
+              ...s.log,
+              { id: `log:${activityId}:${key}:${now}`, activityId, dateKey: key, value: 1, xp: a.xp, status: 'completed', at: now },
+            ],
+          })
+        }
+      },
+
+      // Push a call/run — no penalty for the original day.
+      //  • call: moves to the next calendar day (still loggable for full XP).
+      //  • run:  carries its mile(s) onto the NEXT scheduled run day.
+      pushItem: (activityId, key) => {
+        const s = get()
+        if (activityId === 'run') {
+          const owed = 1 + (s.runCarry[key] ?? 0) // miles owed on this run day
+          const nextKey = nextRunDayKey(key)
+          set({
+            deferrals: { ...s.deferrals, [`run@${key}`]: nextKey }, // excuse this day
+            runCarry: { ...s.runCarry, [nextKey]: (s.runCarry[nextKey] ?? 0) + owed },
+          })
+        } else {
+          const compositeKey = `${activityId}@${key}`
+          const current = s.deferrals[compositeKey] ?? key
+          const [y, m, d] = current.split('-').map(Number)
+          const next = new Date(y, m - 1, d + 1)
+          set({ deferrals: { ...s.deferrals, [compositeKey]: dateKey(next.getTime()) } })
+        }
+        get().resolve()
+      },
+
+      logRun: (miles, key) => {
+        const s = get()
+        const a = ACTIVITY_BY_ID.run
+        const now = realNow(s)
+        key = key ?? occurrenceKey(a, now)
+        const xp = earnFor(a, miles)
+        // Remove any prior run entry this week, then record the new one.
+        const without = s.log.filter(
+          (e) => !(e.activityId === 'run' && e.dateKey === key),
+        )
+        if (xp === 0) {
+          // Under target — no credit, no entry. Stays "due" → resolves to −5.
+          set({ log: without })
+          return 'under-target'
+        }
+        const entry: LogEntry = {
+          id: `log:run:${key}:${now}`,
+          activityId: 'run',
+          dateKey: key,
+          value: miles,
+          xp,
+          status: 'completed',
+          at: now,
+        }
+        set({ log: [...without, entry] })
+        return 'banked'
+      },
+
+      logExtra: () => {
+        const s = get()
+        const a = ACTIVITY_BY_ID.extra
+        const now = realNow(s)
+        const entry: LogEntry = {
+          id: `log:extra:${now}:${Math.floor(now / 7)}`,
+          activityId: 'extra',
+          dateKey: occurrenceKey(a, now),
+          value: 1,
+          xp: a.xp,
+          status: 'completed',
+          at: now,
+        }
+        set({ log: [...s.log, entry] })
+      },
+
+      setDifficulty: (d) => set({ rival: { ...get().rival, difficulty: d } }),
+      setRival: (patch) => set({ rival: { ...get().rival, ...patch } }),
+      setYmmotName: (name) => set({ ymmotName: name }),
+      setPlayer: (patch) =>
+        set({
+          playerName: patch.name ?? get().playerName,
+          playerSpriteId: patch.spriteId ?? get().playerSpriteId,
+        }),
+      setAllowNegative: (b) => set({ settings: { ...get().settings, allowNegative: b } }),
+      toggleSound: () => set({ settings: { ...get().settings, sound: !get().settings.sound } }),
+      markReportsSeen: () => {
+        const s = get()
+        const now = realNow(s)
+        const days = Math.floor((startOfDay(now) - startOfDay(s.startMs)) / MS_DAY)
+        set({
+          reportsSeen: {
+            week: Math.floor(days / 7),
+            month: Math.floor(days / 30),
+            year: Math.floor(days / 365),
+          },
+        })
+      },
+
+      advanceClock: (ms) => {
+        set({ demoOffsetMs: get().demoOffsetMs + ms })
+        get().resolve()
+      },
+      skipToTonight: () => {
+        const s = get()
+        const now = realNow(s)
+        // Jump to 23:30 tonight so the day's items are about to expire.
+        const target = startOfDay(now) + MS_DAY - 30 * 60_000
+        if (target > now) set({ demoOffsetMs: s.demoOffsetMs + (target - now) })
+        get().resolve()
+      },
+      advanceWeek: () => {
+        get().advanceClock(MS_WEEK)
+      },
+      resetToSeed: () => {
+        const now = Date.now()
+        const startMs = computeStartDate(now)
+        set({
+          seeded: true,
+          startMs,
+          log: buildSeedLog(startMs, now),
+          lastResolvedAt: startMs,
+          demoOffsetMs: 0,
+          deferrals: {},
+          runCarry: {},
+        })
+        get().resolve()
+      },
+    }),
+    {
+      name: 'rival-game-v1',
+      partialize: (s) => ({
+        seeded: s.seeded,
+        startMs: s.startMs,
+        log: s.log,
+        lastResolvedAt: s.lastResolvedAt,
+        rival: s.rival,
+        ymmotName: s.ymmotName,
+        settings: s.settings,
+        demoOffsetMs: s.demoOffsetMs,
+        playerName: s.playerName,
+        playerSpriteId: s.playerSpriteId,
+        reportsSeen: s.reportsSeen,
+        deferrals: s.deferrals,
+        runCarry: s.runCarry,
+      }),
+    },
+  ),
+)
+
+// ── The two fixed benchmark lines (both start at 0 on day 0) ───────────────
+export const TOMMY_HOLD = 0.9 // "Tommy" — the totally locked-in version
+export const YMMOT_HOLD = 0.7 // "Ymmot" — the human-achievable version
+
+// ── Derived selectors (computed from the engine, never stored) ─────────────
+
+export function selectPlayerXP(s: GameState): number {
+  const now = s.now()
+  const total = sumXP(s.log.filter((e) => e.at <= now))
+  return s.settings.allowNegative ? total : Math.max(0, total)
+}
+
+/** Tommy (90%) is the primary nemesis — the gap, tiers and tracker measure vs him. */
+export function selectRivalXP(s: GameState): number {
+  return engineRivalXP(catalog(), s.startMs, s.now(), TOMMY_HOLD)
+}
+export const selectTommyXP = selectRivalXP
+
+/** Ymmot (70%) — the constant human-consistency benchmark. */
+export function selectYmmotXP(s: GameState): number {
+  return engineRivalXP(catalog(), s.startMs, s.now(), YMMOT_HOLD)
+}
+
+export function selectMaxXP(s: GameState): number {
+  return maxXP(catalog(), s.startMs, s.now())
+}
+
+export interface GapSample {
+  key: string
+  you: number
+  tommy: number
+  ymmot: number
+}
+
+/** Per-day history of all three lines for the trend graph + consistency tracker. */
+export function selectGapHistory(s: GameState, days: number): GapSample[] {
+  const now = s.now()
+  const out: GapSample[] = []
+  const firstDay = startOfDay(now) - (days - 1) * MS_DAY
+  for (let d = Math.max(firstDay, startOfDay(s.startMs)); d <= startOfDay(now); d += MS_DAY) {
+    const dayEnd = Math.min(now, endOfDay(d))
+    const you = sumXP(s.log.filter((e) => e.at <= dayEnd))
+    out.push({
+      key: new Date(d).toISOString().slice(0, 10),
+      you,
+      tommy: engineRivalXP(catalog(), s.startMs, dayEnd, TOMMY_HOLD),
+      ymmot: engineRivalXP(catalog(), s.startMs, dayEnd, YMMOT_HOLD),
+    })
+  }
+  return out
+}
+
+/**
+ * How much each gap (you − rival) moved since the start of the current day.
+ * Positive = you gained on them today; negative = the CPU gained on you.
+ */
+export function selectGapDeltaToday(s: GameState): { ymmot: number; tommy: number } {
+  const now = s.now()
+  // The last instant of yesterday — *before* the CPUs banked their overnight
+  // lump at this morning's midnight — so that lump shows up as today's change.
+  const then = startOfDay(now) - 1
+  const youNow = sumXP(s.log.filter((e) => e.at <= now))
+  const youThen = sumXP(s.log.filter((e) => e.at <= then))
+  const tNow = engineRivalXP(catalog(), s.startMs, now, TOMMY_HOLD)
+  const tThen = engineRivalXP(catalog(), s.startMs, then, TOMMY_HOLD)
+  const yNow = engineRivalXP(catalog(), s.startMs, now, YMMOT_HOLD)
+  const yThen = engineRivalXP(catalog(), s.startMs, then, YMMOT_HOLD)
+  return {
+    tommy: youNow - tNow - (youThen - tThen),
+    ymmot: youNow - yNow - (youThen - yThen),
+  }
+}
+
+/** Gap vs Tommy now and 7 days ago, for the trend chip. */
+export function selectGapTrend(s: GameState): { gap: number; delta7: number } {
+  const now = s.now()
+  const gapNow = selectPlayerXP(s) - selectRivalXP(s)
+  const wkAgo = Math.max(startOfDay(s.startMs), now - 7 * MS_DAY)
+  const youThen = sumXP(s.log.filter((e) => e.at <= wkAgo))
+  const tommyThen = engineRivalXP(catalog(), s.startMs, wkAgo, TOMMY_HOLD)
+  return { gap: gapNow, delta7: gapNow - (youThen - tommyThen) }
+}
+
+/** Which report cadences have a newly-completed period the user hasn't seen. */
+export function selectPendingReports(s: GameState): { week: boolean; month: boolean; year: boolean; any: boolean } {
+  const now = s.now()
+  const days = Math.floor((startOfDay(now) - startOfDay(s.startMs)) / MS_DAY)
+  const week = Math.floor(days / 7) > s.reportsSeen.week
+  const month = Math.floor(days / 30) > s.reportsSeen.month
+  const year = Math.floor(days / 365) > s.reportsSeen.year
+  return { week, month, year, any: week || month || year }
+}
+
+export { endOfDay, endOfWeek, startOfWeek }

@@ -1,0 +1,23 @@
+# Netlify (or any static host) deploy config for RIVAL.
+# `npm run build` emits a fully static, offline-first PWA bundle into dist/.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Single-page app: serve index.html for any route.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Never cache the service worker or the app shell, so updates ship instantly.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"

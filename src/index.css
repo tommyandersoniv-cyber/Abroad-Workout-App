@@ -1,0 +1,220 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+@import 'tailwindcss';
+
+/* ── 8/16-bit palette: deep indigo night + CRT green / amber accents ─────── */
+@theme {
+  --color-night: #0d0820;
+  --color-panel: #1a1033;
+  --color-panel2: #241546;
+  --color-panel3: #33215e;
+  --color-ink: #07040f;
+  --color-line: #4b2e89;
+
+  --color-ink-text: #ece6ff;
+  --color-dim: #9d8ec9;
+
+  --color-you: #41f59b; /* CRT green — ME */
+  --color-you-dk: #1f9c5e;
+  --color-rival: #ff7a45; /* amber-orange — legacy/taunt accent */
+  --color-rival-dk: #b8431a;
+  --color-ymmot: #b07bff; /* violet — the 70% human benchmark */
+  --color-tommy: #4f86ff; /* blue — the 90% locked-in version */
+  --color-danger: #ff4d6d;
+  --color-gold: #ffd34d;
+  --color-cyan: #5ad7ff;
+
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-term: 'VT323', monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-ink-text);
+  font-family: var(--font-term);
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img,
+canvas,
+svg {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Pixel text helper — Press Start 2P is tiny & wide, so scale carefully. */
+.font-pixel {
+  font-family: var(--font-pixel);
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+.font-term {
+  font-family: var(--font-term);
+}
+
+/* ── Chunky retro panel with a double bevel border ───────────────────────── */
+.panel {
+  background: var(--color-panel);
+  border: 3px solid var(--color-ink);
+  box-shadow:
+    inset 0 0 0 3px var(--color-line),
+    inset 0 0 0 6px var(--color-panel),
+    0 4px 0 0 rgba(0, 0, 0, 0.5);
+}
+.panel-tight {
+  background: var(--color-panel);
+  border: 3px solid var(--color-ink);
+  box-shadow: inset 0 0 0 2px var(--color-line);
+}
+
+/* HUD frame for the XP bars */
+.hud {
+  background: var(--color-ink);
+  border: 3px solid var(--color-line);
+  box-shadow: inset 0 0 0 2px var(--color-ink);
+}
+
+/* Pixel button */
+.btn {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  background: var(--color-panel3);
+  color: var(--color-ink-text);
+  border: 3px solid var(--color-ink);
+  box-shadow:
+    inset -3px -3px 0 0 rgba(0, 0, 0, 0.45),
+    inset 3px 3px 0 0 rgba(255, 255, 255, 0.12);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: transform 0.05s;
+  user-select: none;
+}
+.btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 3px 3px 0 0 rgba(0, 0, 0, 0.45);
+}
+.btn-you {
+  background: var(--color-you-dk);
+  color: #06301c;
+  color: #eafff4;
+}
+.btn-rival {
+  background: var(--color-rival-dk);
+}
+.btn-gold {
+  background: #a9851f;
+  color: #fff;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Juice ───────────────────────────────────────────────────────────────── */
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.anim-bob { animation: bob 1.6s steps(2, end) infinite; }
+
+@keyframes bob-fast {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.anim-bob-fast { animation: bob-fast 0.9s steps(2, end) infinite; }
+
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, -2px); }
+  80% { transform: translate(3px, 2px); }
+}
+.anim-shake { animation: shake 0.4s steps(2, end) 2; }
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.anim-flash { animation: flash 0.18s steps(1, end) 6; }
+
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.anim-pop { animation: pop 0.35s ease-out; }
+
+@keyframes rise {
+  0% { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.anim-rise { animation: rise 0.3s ease-out; }
+
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+/* CRT scanline overlay */
+.crt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.16) 3px
+  );
+  mix-blend-mode: multiply;
+  z-index: 50;
+}
+
+/* XP bar shimmer */
+.bar-fill {
+  position: relative;
+  overflow: hidden;
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 2.4s linear infinite;
+}
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* Hide scrollbars but keep scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Pixel checkbox box */
+.pixbox {
+  width: 22px;
+  height: 22px;
+  border: 3px solid var(--color-ink);
+  box-shadow: inset 0 0 0 2px var(--color-line);
+  background: var(--color-night);
+  flex: none;
+  display: grid;
+  place-items: center;
+}

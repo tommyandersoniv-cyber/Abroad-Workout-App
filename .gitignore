@@ -1,0 +1,7 @@
+node_modules
+dist
+dist-ssr
+.npmcache
+*.local
+.DS_Store
+.vite
