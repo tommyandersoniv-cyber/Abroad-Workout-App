@@ -19,7 +19,7 @@ import {
   maxXP,
 } from '../engine'
 import { ACTIVITY_BY_ID } from '../seed/activities'
-import { buildSeedLog, computeStartDate, DEFAULT_RIVAL } from '../seed'
+import { buildSeedLog, buildDemoLog, computeStartDate, computeDemoStartDate, DEFAULT_RIVAL } from '../seed'
 import { RUN_WEEKDAYS } from '../seed/social'
 import { MS_DAY, MS_WEEK, startOfDay, startOfWeek, weekday, dateKey } from '../engine/time'
 
@@ -46,6 +46,10 @@ interface GameState {
   deferrals: Record<string, string>
   /** extra miles carried onto a run day (its dateKey) by pushing earlier runs */
   runCarry: Record<string, number>
+  /** has the player completed the sign-up + tutorial flow? */
+  onboarded: boolean
+  /** sign-up profile */
+  profile: { name: string; dob: string } | null
 
   // lifecycle
   init: () => void
@@ -69,6 +73,11 @@ interface GameState {
   setAllowNegative: (b: boolean) => void
   toggleSound: () => void
   markReportsSeen: () => void
+
+  // onboarding
+  completeSignup: (name: string, dob: string) => void
+  loadDemo: () => void
+  finishOnboarding: () => void
 
   // demo controls
   advanceClock: (ms: number) => void
@@ -127,6 +136,8 @@ export const useGameStore = create<GameState>()(
       reportsSeen: { week: 0, month: 0, year: 0 },
       deferrals: {},
       runCarry: {},
+      onboarded: false,
+      profile: null,
 
       now: () => realNow(get()),
 
@@ -318,6 +329,43 @@ export const useGameStore = create<GameState>()(
         })
       },
 
+      // ── Onboarding ─────────────────────────────────────────────────────
+      completeSignup: (name, dob) => {
+        set({ profile: { name: name.trim() || 'ME', dob }, playerName: name.trim() || 'ME' })
+        get().loadDemo() // populate every screen for the tutorial
+      },
+      loadDemo: () => {
+        const now = Date.now()
+        const startMs = computeDemoStartDate(now)
+        set({
+          seeded: true,
+          startMs,
+          log: buildDemoLog(startMs, now),
+          lastResolvedAt: startMs,
+          demoOffsetMs: 0,
+          deferrals: {},
+          runCarry: {},
+        })
+        get().resolve()
+      },
+      finishOnboarding: () => {
+        // The real journey begins: fresh Day 1, empty ledger, keep their name.
+        const now = Date.now()
+        const startMs = computeStartDate(now)
+        set({
+          onboarded: true,
+          seeded: true,
+          startMs,
+          log: buildSeedLog(startMs, now),
+          lastResolvedAt: startMs,
+          demoOffsetMs: 0,
+          deferrals: {},
+          runCarry: {},
+          reportsSeen: { week: 0, month: 0, year: 0 },
+        })
+        get().resolve()
+      },
+
       advanceClock: (ms) => {
         set({ demoOffsetMs: get().demoOffsetMs + ms })
         get().resolve()
@@ -364,6 +412,8 @@ export const useGameStore = create<GameState>()(
         reportsSeen: s.reportsSeen,
         deferrals: s.deferrals,
         runCarry: s.runCarry,
+        onboarded: s.onboarded,
+        profile: s.profile,
       }),
     },
   ),

@@ -15,6 +15,9 @@ import { RivalSetup } from './screens/RivalSetup'
 import { Settings } from './screens/Settings'
 import { Reports } from './screens/Reports'
 import { selectPendingReports } from './store/useGameStore'
+import { Signup } from './components/Signup'
+import { Tutorial } from './components/Tutorial'
+import { useOnboarding } from './store/useOnboarding'
 
 const SCREENS: Record<Screen, ComponentType> = {
   arena: Arena,
@@ -32,11 +35,15 @@ const SCREENS: Record<Screen, ComponentType> = {
 export default function App() {
   const screen = useNav((n) => n.screen)
   const init = useGameStore((s) => s.init)
+  const onboarded = useGameStore((s) => s.onboarded)
+  const phase = useOnboarding((o) => o.phase)
 
   useEffect(() => {
     init()
-    // Surface any newly-completed report (weekly / monthly / yearly).
-    const p = selectPendingReports(useGameStore.getState())
+    // Surface any newly-completed report — only for established (onboarded) players.
+    const s = useGameStore.getState()
+    if (!s.onboarded) return
+    const p = selectPendingReports(s)
     const due = [p.year && 'YEAR', p.month && 'MONTH', p.week && 'WEEK'].filter(Boolean)
     if (due.length) useFx.getState().say(`📊 New ${due[0]} report ready`)
   }, [init])
@@ -60,6 +67,8 @@ export default function App() {
         <BottomNav />
         <DemoControls />
         <FxLayer />
+        {!onboarded && phase === 'tutorial' && <Tutorial />}
+        {!onboarded && phase === 'signup' && <Signup />}
       </div>
     </div>
   )

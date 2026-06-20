@@ -15,7 +15,10 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(sips -g pixelWidth -g pixelHeight icon-512.png)",
       "Bash(echo \"=exit $?=\")",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(git tag *)"
     ]
   }
 }
