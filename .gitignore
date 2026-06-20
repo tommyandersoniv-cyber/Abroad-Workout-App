@@ -5,3 +5,6 @@ dist-ssr
 *.local
 .DS_Store
 .vite
+
+# local tool settings
+.claude/settings.local.json
