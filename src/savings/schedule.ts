@@ -14,14 +14,31 @@ import { MS_DAY, MS_WEEK, startOfDay, addMonths } from '../engine/time'
 
 // ── Challenge schedules ────────────────────────────────────────────────────
 
+/** How many periods the challenge runs for (schedule length or ramp count). */
+export function challengePeriods(ch: Challenge): number {
+  return ch.amounts ? ch.amounts.length : ch.periods ?? 0
+}
+
+/** Word for one challenge period, by cadence. */
+export function challengeUnit(ch: Challenge): string {
+  return ch.cadence === 'daily' ? 'day' : ch.cadence === 'biweekly' ? 'paycheck' : 'week'
+}
+
 /** Amount the challenge calls for in its period `i` (0-based). */
 export function challengeAmountForPeriod(ch: Challenge, i: number): number {
-  return ch.startAmount + ch.stepAmount * i
+  if (ch.amounts) return ch.amounts[i] ?? 0
+  return (ch.startAmount ?? 0) + (ch.stepAmount ?? 0) * i
 }
 
 /** Total a challenge sums to if completed perfectly. */
 export function challengeTotal(ch: Challenge): number {
-  return ch.periods * ch.startAmount + (ch.stepAmount * ch.periods * (ch.periods - 1)) / 2
+  if (ch.amounts) return ch.amounts.reduce((sum, a) => sum + a, 0)
+  const n = ch.periods ?? 0
+  return n * (ch.startAmount ?? 0) + ((ch.stepAmount ?? 0) * n * (n - 1)) / 2
+}
+
+function challengeStepMs(ch: Challenge): number {
+  return ch.cadence === 'daily' ? MS_DAY : ch.cadence === 'biweekly' ? 2 * MS_WEEK : MS_WEEK
 }
 
 /**
@@ -31,19 +48,18 @@ export function challengeTotal(ch: Challenge): number {
 export function challengePeriodIndex(ch: Challenge, startMs: number, nowMs: number): number {
   const base = startOfDay(startMs)
   if (nowMs <= base) return 0
-  const stepMs = ch.cadence === 'weekly' ? MS_WEEK : MS_DAY
-  return Math.floor((nowMs - base) / stepMs)
+  return Math.floor((nowMs - base) / challengeStepMs(ch))
 }
 
 /** The amount due for the CURRENT challenge period (0 once the challenge is over). */
 export function challengeCurrentAmount(ch: Challenge, startMs: number, nowMs: number): number {
   const i = challengePeriodIndex(ch, startMs, nowMs)
-  return i >= 0 && i < ch.periods ? challengeAmountForPeriod(ch, i) : 0
+  return i >= 0 && i < challengePeriods(ch) ? challengeAmountForPeriod(ch, i) : 0
 }
 
 /** The disciplined rival's running total: sums every period whose deadline passed. */
 export function challengeRivalTotal(ch: Challenge, startMs: number, nowMs: number): number {
-  const completed = Math.min(ch.periods, challengePeriodIndex(ch, startMs, nowMs))
+  const completed = Math.min(challengePeriods(ch), challengePeriodIndex(ch, startMs, nowMs))
   let total = 0
   for (let i = 0; i < completed; i++) total += challengeAmountForPeriod(ch, i)
   return total

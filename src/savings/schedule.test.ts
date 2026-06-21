@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   challengeAmountForPeriod,
   challengeTotal,
+  challengePeriods,
   challengePeriodIndex,
   challengeCurrentAmount,
   challengeRivalTotal,
@@ -40,6 +41,18 @@ describe('challenge totals', () => {
   })
   it('30-Day Fiver sums to $2,325', () => {
     expect(challengeTotal(CHALLENGE_BY_ID['fiver-30'])).toBe(2325)
+  })
+  it('amounts-based challenges sum to their headline totals', () => {
+    expect(challengeTotal(CHALLENGE_BY_ID['hundred-30'])).toBe(100)
+    expect(challengeTotal(CHALLENGE_BY_ID['grand-30'])).toBe(1000)
+    expect(challengeTotal(CHALLENGE_BY_ID['grand-3mo'])).toBe(1008)
+    expect(challengeTotal(CHALLENGE_BY_ID['biweekly-5k'])).toBe(5000)
+    expect(challengeTotal(CHALLENGE_BY_ID['biweekly-10k'])).toBe(10000)
+  })
+  it('challengePeriods reflects schedule length or ramp count', () => {
+    expect(challengePeriods(CHALLENGE_BY_ID['hundred-30'])).toBe(30)
+    expect(challengePeriods(CHALLENGE_BY_ID['biweekly-5k'])).toBe(26)
+    expect(challengePeriods(CHALLENGE_BY_ID['grand-3mo'])).toBe(12)
   })
   it('amount for a period escalates linearly', () => {
     const ch = CHALLENGE_BY_ID['dollar-30']
@@ -86,6 +99,23 @@ describe('challenge index (weekly ramp uses 7-day blocks from start)', () => {
   })
   it('rival banks $1+$2+$3 after 3 full weeks', () => {
     expect(challengeRivalTotal(ch, MON, MON + 3 * MS_WEEK + 3_600_000)).toBe(6)
+  })
+})
+
+describe('amounts-based + biweekly challenges', () => {
+  const stepped = CHALLENGE_BY_ID['hundred-30'] // daily, $1×5,$2×5,...
+  it('reads the per-period schedule (daily, stepped)', () => {
+    expect(challengeAmountForPeriod(stepped, 0)).toBe(1)
+    expect(challengeAmountForPeriod(stepped, 5)).toBe(2)
+    expect(challengeCurrentAmount(stepped, MON, MON + 5 * MS_DAY + 3_600_000)).toBe(2) // day 5
+    expect(challengeRivalTotal(stepped, MON, MON + 5 * MS_DAY)).toBe(5) // first 5 days banked $1 each
+  })
+  const pay = CHALLENGE_BY_ID['biweekly-5k'] // biweekly paychecks
+  it('biweekly cadence steps every 14 days', () => {
+    expect(challengePeriodIndex(pay, MON, MON + 13 * MS_DAY)).toBe(0)
+    expect(challengePeriodIndex(pay, MON, MON + 14 * MS_DAY)).toBe(1)
+    expect(challengeRivalTotal(pay, MON, MON + 14 * MS_DAY)).toBe(150) // first paycheck banked
+    expect(challengeRivalTotal(pay, MON, MON + 28 * MS_DAY)).toBe(350) // + second ($200)
   })
 })
 

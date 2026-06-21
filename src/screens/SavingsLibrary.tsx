@@ -3,7 +3,7 @@ import { useSavingsStore } from '../store/useSavingsStore'
 import { useNav } from '../store/useNav'
 import { useFx } from '../store/useFx'
 import { CHALLENGES } from '../seed/challenges'
-import { challengeTotal, money } from '../savings'
+import { challengeTotal, challengePeriods, challengeUnit, money } from '../savings'
 
 export function SavingsLibrary() {
   const s = useSavingsStore()
@@ -61,7 +61,7 @@ export function SavingsLibrary() {
                 </div>
                 <div className="font-term text-dim text-sm leading-tight">{ch.blurb}</div>
                 <div className="font-term text-dim text-xs mt-0.5">
-                  {ch.periods} {ch.cadence === 'weekly' ? 'weeks' : 'days'} · banks {money(challengeTotal(ch))}
+                  {challengePeriods(ch)} {challengeUnit(ch)}s · banks {money(challengeTotal(ch))}
                 </div>
               </div>
               <div className="text-right">

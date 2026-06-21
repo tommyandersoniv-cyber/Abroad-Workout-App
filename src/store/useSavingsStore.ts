@@ -17,8 +17,10 @@ import {
   PACE_WORD,
   challengeCurrentAmount,
   challengePeriodIndex,
+  challengePeriods,
   challengeRivalTotal,
   challengeTotal,
+  challengeUnit,
   deadlineFrom,
   daysSaved,
   round2,
@@ -306,12 +308,12 @@ export function selectQuickSave(s: SavingsState): QuickSave | null {
     if (!ch) return null
     const amount = challengeCurrentAmount(ch, goal.startMs, now)
     if (amount <= 0) return null // challenge complete
-    const weekly = ch.cadence === 'weekly'
-    const from = weekly ? startOfWeek(now) : startOfDay(now)
+    const daily = ch.cadence === 'daily'
+    const from = daily ? startOfDay(now) : startOfWeek(now)
     return {
       amount,
       label: goal.name,
-      period: weekly ? 'week' : 'today',
+      period: daily ? 'today' : 'week',
       done: savedSince(s.contributions, from, now) >= amount - 0.001,
     }
   }
@@ -345,6 +347,7 @@ export function selectSavingsView(s: SavingsState): SavingsView | null {
     const ideal = challengeRivalTotal(ch, goal.startMs, now)
     const finishTarget = challengeTotal(ch)
     const idx = challengePeriodIndex(ch, goal.startMs, now)
+    const totalPeriods = challengePeriods(ch)
     const todayTarget = challengeCurrentAmount(ch, goal.startMs, now)
     return {
       goal, mode: 'challenge', now, day, you,
@@ -352,12 +355,14 @@ export function selectSavingsView(s: SavingsState): SavingsView | null {
       idealLabel: 'ON SCHEDULE', floorLabel: null,
       gapIdeal: round2(you - ideal), gapFloor: null,
       status: you >= ideal - 0.001 ? 'ahead' : 'behind',
-      todayTarget, todayTargetLabel: ch.cadence === 'weekly' ? 'THIS WEEK' : 'TODAY', savedToday,
-      perDeposit: todayTarget, paceWord: ch.cadence === 'weekly' ? 'week' : 'day',
+      todayTarget,
+      todayTargetLabel: ch.cadence === 'daily' ? 'TODAY' : ch.cadence === 'biweekly' ? 'THIS PAYCHECK' : 'THIS WEEK',
+      savedToday,
+      perDeposit: todayTarget, paceWord: challengeUnit(ch),
       periodLabel: 'PROGRESS', periodSaved: you, periodTarget: finishTarget,
       periodPct: finishTarget > 0 ? Math.min(100, (you / finishTarget) * 100) : 0,
-      challenge: ch, periodIndex: Math.min(idx, ch.periods), totalPeriods: ch.periods,
-      finishTarget, complete: you >= finishTarget - 0.001 || idx >= ch.periods,
+      challenge: ch, periodIndex: Math.min(idx, totalPeriods), totalPeriods,
+      finishTarget, complete: you >= finishTarget - 0.001 || idx >= totalPeriods,
       daysSaved: dSaved, streak,
     }
   }

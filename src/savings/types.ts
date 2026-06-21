@@ -23,14 +23,14 @@ export interface Challenge {
   name: string
   icon: string
   blurb: string
-  /** Step interval — one new amount per day or per week. */
-  cadence: 'daily' | 'weekly'
-  /** Amount due in period 0 ($). */
-  startAmount: number
-  /** Added (or subtracted) each subsequent period ($). */
-  stepAmount: number
-  /** Number of periods the challenge runs for. */
-  periods: number
+  /** Step interval — a new amount each day, week, or paycheck (every 2 weeks). */
+  cadence: 'daily' | 'weekly' | 'biweekly'
+  /** Explicit per-period schedule ($). When set, takes precedence over the ramp fields. */
+  amounts?: number[]
+  /** Linear ramp (used only when `amounts` is absent): period i = startAmount + stepAmount·i. */
+  startAmount?: number
+  stepAmount?: number
+  periods?: number
 }
 
 /**
