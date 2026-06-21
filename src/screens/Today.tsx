@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Panel, PixelButton } from '../components/ui'
 import { useGameStore, selectPlayerXP } from '../store/useGameStore'
+import { useSavingsStore, selectQuickSave, type QuickSave } from '../store/useSavingsStore'
 import { useNav } from '../store/useNav'
 import { useFx } from '../store/useFx'
 import { useTick } from '../hooks/useNow'
 import { buildTodayModel, type DueItem, type DayItem } from '../lib/today'
 import { dateKey } from '../engine/time'
+import { money } from '../savings'
 
 export function Today() {
   useTick(1000)
@@ -16,6 +18,7 @@ export function Today() {
   const today = buildTodayModel(s.startMs, s.now(), s.log, s.deferrals, s.runCarry)
   const you = selectPlayerXP(s)
   const todayKey = dateKey(s.now())
+  const quickSave = selectQuickSave(useSavingsStore())
 
   const dateLabel = new Date(s.now()).toLocaleDateString(undefined, {
     weekday: 'long',
@@ -97,10 +100,16 @@ export function Today() {
               <CallRow key={i.key} item={i} todayKey={todayKey} />
             ),
           )}
+          {quickSave && (
+            <div className="pt-2 border-t border-line/50">
+              <SaveRow quick={quickSave} />
+            </div>
+          )}
         </div>
         <p className="font-term text-dim text-sm mt-2">
           3 calls/wk (2 family · 1 friend, +2 each) · 1 mi run on 3 days. Push with no penalty — a pushed
           mile just adds to your next run.
+          {quickSave && ' Log your savings here too — no need to switch modes.'}
         </p>
       </Panel>
     </div>
@@ -128,6 +137,37 @@ function dayTag(item: DayItem, todayKey: string): string {
     return '→ ' + new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short' })
   }
   return item.dayLabel
+}
+
+// Quick-log a savings deposit without leaving workout mode. Amount is the active
+// goal's weekly-equivalent (custom target) or the challenge's current amount.
+function SaveRow({ quick }: { quick: QuickSave }) {
+  const log = useSavingsStore((s) => s.logContribution)
+  const say = useFx((f) => f.say)
+  return (
+    <button
+      className="w-full flex items-center gap-2 text-left"
+      onClick={() => {
+        if (quick.done) return
+        log(quick.amount)
+        say(`+${money(quick.amount)} saved · ${quick.label}`)
+      }}
+    >
+      <div className="pixbox">{quick.done && <span className="text-save font-pixel text-[10px]">✓</span>}</div>
+      <span className="text-xl">💰</span>
+      <div className="flex-1">
+        <div className={`font-term text-lg leading-tight ${quick.done ? 'text-dim line-through' : ''}`}>
+          Save · {quick.label}
+        </div>
+        <div className="font-term text-dim text-sm">
+          <span className={quick.done ? 'text-save' : 'text-cyan'}>{quick.period === 'week' ? 'this week' : 'today'}</span>
+          {' · '}
+          {quick.done ? 'logged' : `tap to bank ${money(quick.amount)}`}
+        </div>
+      </div>
+      <span className={`font-pixel text-[8px] ${quick.done ? 'text-save' : 'text-dim'}`}>{money(quick.amount)}</span>
+    </button>
+  )
 }
 
 function CallRow({ item, todayKey }: { item: DayItem; todayKey: string }) {

@@ -31,7 +31,7 @@ import {
 } from '../savings'
 import { CHALLENGE_BY_ID } from '../seed/challenges'
 import { useGameStore } from './useGameStore'
-import { MS_DAY, daysBetween, dateKey, endOfDay, startOfDay } from '../engine/time'
+import { MS_DAY, MS_WEEK, daysBetween, dateKey, endOfDay, startOfDay, startOfWeek } from '../engine/time'
 
 /** Everything the setup / library hands to the store. */
 export interface GoalInput {
@@ -282,6 +282,51 @@ export function selectSavedTotal(s: SavingsState): number {
 /** Money saved across ALL goals — current plus everything banked from past ones. */
 export function selectLifetimeSaved(s: SavingsState): number {
   return round2(s.archivedSaved + savedTotal(s.contributions, s.now()))
+}
+
+/** A one-tap save the workout-side Today screen can offer, sized to the active goal. */
+export interface QuickSave {
+  /** Amount logged on press. */
+  amount: number
+  /** Goal name, for the row label. */
+  label: string
+  /** Cadence of the offered save: this week (custom + weekly challenge) or today (daily challenge). */
+  period: 'week' | 'today'
+  /** Already met this period's amount. */
+  done: boolean
+}
+
+export function selectQuickSave(s: SavingsState): QuickSave | null {
+  const goal = s.goal
+  if (!s.configured || !goal) return null
+  const now = s.now()
+
+  if (goal.mode === 'challenge') {
+    const ch = CHALLENGE_BY_ID[goal.challengeId ?? '']
+    if (!ch) return null
+    const amount = challengeCurrentAmount(ch, goal.startMs, now)
+    if (amount <= 0) return null // challenge complete
+    const weekly = ch.cadence === 'weekly'
+    const from = weekly ? startOfWeek(now) : startOfDay(now)
+    return {
+      amount,
+      label: goal.name,
+      period: weekly ? 'week' : 'today',
+      done: savedSince(s.contributions, from, now) >= amount - 0.001,
+    }
+  }
+
+  // custom target → the weekly-equivalent of the on-pace plan
+  const deadline = goal.deadlineMs ?? now
+  const weeks = Math.max(1, (deadline - startOfDay(goal.startMs)) / MS_WEEK)
+  const amount = round2(goal.totalAmount / weeks)
+  if (amount <= 0) return null
+  return {
+    amount,
+    label: goal.name,
+    period: 'week',
+    done: savedSince(s.contributions, startOfWeek(now), now) >= amount - 0.001,
+  }
 }
 
 export function selectSavingsView(s: SavingsState): SavingsView | null {
