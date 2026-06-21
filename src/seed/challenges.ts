@@ -27,6 +27,17 @@ export const CHALLENGES: Challenge[] = [
     periods: 30,
   },
   {
+    id: 'five-hundred-30',
+    name: '$500 in 30 Days',
+    icon: '🪙',
+    blurb: 'A different random amount each day for 30 days.',
+    cadence: 'daily',
+    amounts: [
+      3, 19, 29, 13, 25, 25, 17, 13, 23, 11, 25, 16, 4, 15, 27, 30, 15, 10, 20, 11, 23, 9, 3, 28, 15,
+      5, 12, 23, 2, 29,
+    ],
+  },
+  {
     id: 'grand-30',
     name: '$1,000 in 30 Days',
     icon: '🎲',
@@ -89,6 +100,16 @@ export const CHALLENGES: Challenge[] = [
     ],
   },
   {
+    id: 'envelope-100',
+    name: '100 Envelope Challenge',
+    icon: '✉️',
+    blurb: 'Fill 100 envelopes ($1–$100), one a day — the viral $5,050 challenge.',
+    cadence: 'daily',
+    startAmount: 1,
+    stepAmount: 1,
+    periods: 100,
+  },
+  {
     id: 'biweekly-10k',
     name: '$10,000 Biweekly',
     icon: '🏦',
@@ -98,6 +119,16 @@ export const CHALLENGES: Challenge[] = [
       275, 475, 275, 475, 275, 475, 275, 475, 275, 475, 275, 475, 275, 475, 275, 475, 275, 475, 275,
       475, 275, 475, 275, 475, 425, 575,
     ],
+  },
+  {
+    id: 'envelope-200',
+    name: '100 Envelopes · Double',
+    icon: '📨',
+    blurb: 'Double-stuffed envelopes ($2–$200), one a day — banks $10,100 in 100 days.',
+    cadence: 'daily',
+    startAmount: 2,
+    stepAmount: 2,
+    periods: 100,
   },
 ]
 

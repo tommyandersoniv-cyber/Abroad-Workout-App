@@ -48,6 +48,12 @@ describe('challenge totals', () => {
     expect(challengeTotal(CHALLENGE_BY_ID['grand-3mo'])).toBe(1008)
     expect(challengeTotal(CHALLENGE_BY_ID['biweekly-5k'])).toBe(5000)
     expect(challengeTotal(CHALLENGE_BY_ID['biweekly-10k'])).toBe(10000)
+    expect(challengeTotal(CHALLENGE_BY_ID['five-hundred-30'])).toBe(500)
+  })
+  it('100-envelope challenges sum to 1+2+…+100 (and its double)', () => {
+    expect(challengeTotal(CHALLENGE_BY_ID['envelope-100'])).toBe(5050)
+    expect(challengeTotal(CHALLENGE_BY_ID['envelope-200'])).toBe(10100)
+    expect(challengePeriods(CHALLENGE_BY_ID['envelope-100'])).toBe(100)
   })
   it('challengePeriods reflects schedule length or ramp count', () => {
     expect(challengePeriods(CHALLENGE_BY_ID['hundred-30'])).toBe(30)
