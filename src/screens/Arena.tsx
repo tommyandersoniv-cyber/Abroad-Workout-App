@@ -17,6 +17,7 @@ import { daysBetween } from '../engine/time'
 import { pickTaunt } from '../seed/rival'
 import { buildTodayModel } from '../lib/today'
 import { ConsistencyTracker } from '../components/ConsistencyTracker'
+import { ModeToggle } from '../components/ModeToggle'
 import type { GapState } from '../seed/rival'
 
 export function Arena() {
@@ -56,6 +57,7 @@ export function Arena() {
 
   return (
     <div className="p-3 space-y-3 anim-rise">
+      <ModeToggle />
       {/* ── Three-way clash: ME vs YMMOT (70%) vs TOMMY (90%) ────────────── */}
       <Panel className="crt overflow-hidden">
         <div className="text-center font-pixel text-[11px] text-cyan mb-2" data-tour="day">DAY {day}</div>

@@ -23,6 +23,9 @@
   --color-gold: #ffd34d;
   --color-cyan: #5ad7ff;
 
+  --color-save: #2fe089; /* money-green — the Savings mode hero line */
+  --color-save-dk: #138a52;
+
   --font-pixel: 'Press Start 2P', monospace;
   --font-term: 'VT323', monospace;
 }
@@ -113,6 +116,10 @@ svg {
 }
 .btn-rival {
   background: var(--color-rival-dk);
+}
+.btn-save {
+  background: var(--color-save-dk);
+  color: #eafff4;
 }
 .btn-gold {
   background: #a9851f;

@@ -11,6 +11,11 @@ export type Screen =
   | 'rival'
   | 'settings'
   | 'reports'
+  | 'savings'
+  | 'savingsSetup'
+  | 'savingsStats'
+  | 'savingsLibrary'
+  | 'savingsReports'
 
 interface NavState {
   screen: Screen

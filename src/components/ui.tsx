@@ -11,11 +11,19 @@ export function Panel({
   children: ReactNode
   className?: string
   title?: string
-  accent?: 'you' | 'rival' | 'gold'
+  accent?: 'you' | 'rival' | 'gold' | 'save'
   dataTour?: string
 }) {
   const accentColor =
-    accent === 'you' ? 'text-you' : accent === 'rival' ? 'text-rival' : accent === 'gold' ? 'text-gold' : 'text-dim'
+    accent === 'you'
+      ? 'text-you'
+      : accent === 'rival'
+        ? 'text-rival'
+        : accent === 'gold'
+          ? 'text-gold'
+          : accent === 'save'
+            ? 'text-save'
+            : 'text-dim'
   return (
     <section className={`panel relative p-3 ${className}`} data-tour={dataTour}>
       {title && (
@@ -36,13 +44,21 @@ export function PixelButton({
 }: {
   children: ReactNode
   onClick?: () => void
-  variant?: 'default' | 'you' | 'rival' | 'gold'
+  variant?: 'default' | 'you' | 'rival' | 'gold' | 'save'
   disabled?: boolean
   className?: string
   type?: 'button' | 'submit'
 }) {
   const v =
-    variant === 'you' ? 'btn-you' : variant === 'rival' ? 'btn-rival' : variant === 'gold' ? 'btn-gold' : ''
+    variant === 'you'
+      ? 'btn-you'
+      : variant === 'rival'
+        ? 'btn-rival'
+        : variant === 'gold'
+          ? 'btn-gold'
+          : variant === 'save'
+            ? 'btn-save'
+            : ''
   return (
     <button type={type} className={`btn ${v} ${className}`} onClick={onClick} disabled={disabled}>
       {children}

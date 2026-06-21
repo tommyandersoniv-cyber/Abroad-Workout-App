@@ -46,6 +46,46 @@ export function endOfWeek(ms: number): number {
   return startOfWeek(ms) + MS_WEEK
 }
 
+/** Midnight (local) at the first day of the month containing `ms`. */
+export function startOfMonth(ms: number): number {
+  const d = new Date(ms)
+  return new Date(d.getFullYear(), d.getMonth(), 1).getTime()
+}
+
+/** Start of the next month — a monthly item's deadline. */
+export function endOfMonth(ms: number): number {
+  const d = new Date(ms)
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime()
+}
+
+/** Number of calendar days in the month containing `ms` (28–31). */
+export function daysInMonth(ms: number): number {
+  const d = new Date(ms)
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+}
+
+/** Midnight (local) at Jan 1 of the year containing `ms`. */
+export function startOfYear(ms: number): number {
+  return new Date(new Date(ms).getFullYear(), 0, 1).getTime()
+}
+
+/** Start of next year — a yearly item's deadline. */
+export function endOfYear(ms: number): number {
+  return new Date(new Date(ms).getFullYear() + 1, 0, 1).getTime()
+}
+
+/** Number of days in the year containing `ms` (365 or 366 in a leap year). */
+export function daysInYear(ms: number): number {
+  const y = new Date(ms).getFullYear()
+  return y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0) ? 366 : 365
+}
+
+/** Same local time, `n` calendar months later (day clamps within the month). */
+export function addMonths(ms: number, n: number): number {
+  const d = new Date(ms)
+  return new Date(d.getFullYear(), d.getMonth() + n, d.getDate(), d.getHours(), d.getMinutes()).getTime()
+}
+
 /** Whole days from `a`'s day-start to `b`'s day-start. */
 export function daysBetween(a: number, b: number): number {
   return Math.round((startOfDay(b) - startOfDay(a)) / MS_DAY)

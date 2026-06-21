@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type ComponentType, type CSSProperties } from 'react'
 import { useNav, type Screen } from './store/useNav'
 import { useGameStore, selectPlayerXP, selectRivalXP, selectYmmotXP } from './store/useGameStore'
+import { useSavingsStore, selectSavedTotal } from './store/useSavingsStore'
+import { useMode } from './store/useMode'
+import { MODE_HOME } from './components/ModeToggle'
+import { money } from './savings'
 import { useFx } from './store/useFx'
 import { useTick } from './hooks/useNow'
 import { tierForGap, combinedGap, TIER_NAMES } from './engine/levels'
@@ -14,6 +18,11 @@ import { Catalog } from './screens/Catalog'
 import { RivalSetup } from './screens/RivalSetup'
 import { Settings } from './screens/Settings'
 import { Reports } from './screens/Reports'
+import { SavingsArena } from './screens/SavingsArena'
+import { SavingsSetup } from './screens/SavingsSetup'
+import { SavingsStats } from './screens/SavingsStats'
+import { SavingsLibrary } from './screens/SavingsLibrary'
+import { SavingsReports } from './screens/SavingsReports'
 import { selectPendingReports } from './store/useGameStore'
 import { Signup } from './components/Signup'
 import { Tutorial } from './components/Tutorial'
@@ -30,6 +39,11 @@ const SCREENS: Record<Screen, ComponentType> = {
   rival: RivalSetup,
   settings: Settings,
   reports: Reports,
+  savings: SavingsArena,
+  savingsSetup: SavingsSetup,
+  savingsStats: SavingsStats,
+  savingsLibrary: SavingsLibrary,
+  savingsReports: SavingsReports,
 }
 
 export default function App() {
@@ -40,6 +54,9 @@ export default function App() {
 
   useEffect(() => {
     init()
+    useSavingsStore.getState().init()
+    // Open on the current mode's home screen (screen state isn't persisted).
+    useNav.getState().go(MODE_HOME[useMode.getState().mode])
     // Surface any newly-completed report — only for established (onboarded) players.
     const s = useGameStore.getState()
     if (!s.onboarded) return
@@ -65,7 +82,6 @@ export default function App() {
           <Current />
         </main>
         <BottomNav />
-        <DemoControls />
         <FxLayer />
         {!onboarded && phase === 'tutorial' && <Tutorial />}
         {!onboarded && phase === 'signup' && <Signup />}
@@ -82,6 +98,9 @@ const backdrop: CSSProperties = {
 function TopBar() {
   useTick(1000)
   const s = useGameStore()
+  const mode = useMode((m) => m.mode)
+  const isSavings = mode === 'savings'
+  const saved = useSavingsStore(selectSavedTotal)
   const you = Math.round(selectPlayerXP(s))
   const ymmot = Math.round(selectYmmotXP(s))
   const tommy = Math.round(selectRivalXP(s))
@@ -111,17 +130,23 @@ function TopBar() {
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}
     >
       <div className="flex items-center gap-2">
-        <button className="font-pixel text-[12px] text-gold" onClick={() => useNav.getState().go('arena')}>
+        <button className="font-pixel text-[12px] text-gold" onClick={() => useNav.getState().go(MODE_HOME[mode])}>
           RIVAL
         </button>
         <span className="font-pixel text-[8px] text-cyan tabular-nums" title="internal clock (24h)" data-tour="clock">{clock}</span>
       </div>
       <div className="flex items-center gap-2 font-pixel text-[8px]">
-        <span className="text-you">{you.toLocaleString()}</span>
-        <span className="text-dim">·</span>
-        <span className="text-ymmot">{ymmot.toLocaleString()}</span>
-        <span className="text-dim">·</span>
-        <span className="text-tommy">{tommy.toLocaleString()}</span>
+        {isSavings ? (
+          <span className="text-save">💰 {money(saved)}</span>
+        ) : (
+          <>
+            <span className="text-you">{you.toLocaleString()}</span>
+            <span className="text-dim">·</span>
+            <span className="text-ymmot">{ymmot.toLocaleString()}</span>
+            <span className="text-dim">·</span>
+            <span className="text-tommy">{tommy.toLocaleString()}</span>
+          </>
+        )}
         <button className={sound ? 'text-gold' : 'text-dim'} onClick={s.toggleSound} title="sound">
           {sound ? '♪' : '✕'}
         </button>
@@ -130,19 +155,52 @@ function TopBar() {
   )
 }
 
-const NAV: { id: Screen; label: string; icon: string }[] = [
+type NavItem = { id: Screen; label: string; icon: string; match?: Screen[] }
+
+const WORKOUT_NAV: NavItem[] = [
   { id: 'stats', label: 'STATS', icon: '📊' },
   { id: 'today', label: 'TODAY', icon: '✓' },
   { id: 'arena', label: 'ARENA', icon: '⚔' },
   { id: 'library', label: 'LIB', icon: '📖' },
 ]
 
+const SAVINGS_NAV: NavItem[] = [
+  { id: 'savingsStats', label: 'STATS', icon: '📊', match: ['savingsStats', 'savingsReports'] },
+  { id: 'savings', label: 'ARENA', icon: '💰', match: ['savings', 'savingsSetup'] },
+  { id: 'savingsLibrary', label: 'LIB', icon: '📚' },
+]
+
 function BottomNav() {
   useTick(5000)
   const screen = useNav((n) => n.screen)
   const go = useNav((n) => n.go)
+  const mode = useMode((m) => m.mode)
   const [menu, setMenu] = useState(false)
   const pending = selectPendingReports(useGameStore.getState()).any
+
+  // Savings mode: three tabs, no overflow menu.
+  if (mode === 'savings') {
+    return (
+      <nav
+        className="shrink-0 grid grid-cols-3 border-t-3 border-line bg-panel z-30"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {SAVINGS_NAV.map((n) => {
+          const active = n.match ? n.match.includes(screen) : screen === n.id
+          return (
+            <button
+              key={n.id}
+              onClick={() => go(n.id)}
+              className={`py-2 flex flex-col items-center gap-0.5 ${active ? 'bg-panel3' : ''}`}
+            >
+              <span className="text-lg leading-none">{n.icon}</span>
+              <span className={`font-pixel text-[6px] ${active ? 'text-save' : 'text-dim'}`}>{n.label}</span>
+            </button>
+          )
+        })}
+      </nav>
+    )
+  }
 
   return (
     <>
@@ -167,16 +225,19 @@ function BottomNav() {
         className="shrink-0 grid grid-cols-5 border-t-3 border-line bg-panel z-30"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {NAV.map((n) => (
-          <button
-            key={n.id}
-            onClick={() => go(n.id)}
-            className={`py-2 flex flex-col items-center gap-0.5 ${screen === n.id ? 'bg-panel3' : ''}`}
-          >
-            <span className="text-lg leading-none">{n.icon}</span>
-            <span className={`font-pixel text-[6px] ${screen === n.id ? 'text-gold' : 'text-dim'}`}>{n.label}</span>
-          </button>
-        ))}
+        {WORKOUT_NAV.map((n) => {
+          const active = n.match ? n.match.includes(screen) : screen === n.id
+          return (
+            <button
+              key={n.id}
+              onClick={() => go(n.id)}
+              className={`py-2 flex flex-col items-center gap-0.5 ${active ? 'bg-panel3' : ''}`}
+            >
+              <span className="text-lg leading-none">{n.icon}</span>
+              <span className={`font-pixel text-[6px] ${active ? 'text-gold' : 'text-dim'}`}>{n.label}</span>
+            </button>
+          )
+        })}
         <button
           onClick={() => setMenu((m) => !m)}
           className={`relative py-2 flex flex-col items-center gap-0.5 ${['catalog', 'rival', 'settings', 'reports'].includes(screen) ? 'bg-panel3' : ''}`}
@@ -187,47 +248,6 @@ function BottomNav() {
         </button>
       </nav>
     </>
-  )
-}
-
-function DemoControls() {
-  const [open, setOpen] = useState(false)
-  const s = useGameStore()
-  const shake = useFx((f) => f.shake)
-
-  function withSwing(fn: () => void) {
-    const before = selectPlayerXP(useGameStore.getState())
-    fn()
-    const after = selectPlayerXP(useGameStore.getState())
-    if (before - after >= 15) shake()
-  }
-
-  return (
-    <div className="absolute right-2 bottom-20 z-40 flex flex-col items-end gap-2">
-      {open && (
-        <div className="panel p-2 w-52 space-y-1.5 anim-rise">
-          <div className="font-pixel text-[7px] text-gold">⏱ DEMO CONTROLS</div>
-          <div className="font-term text-dim text-xs -mt-1">dev tool · advance the clock</div>
-          <div className="grid grid-cols-2 gap-1">
-            <button className="btn text-[7px]" onClick={() => withSwing(() => s.advanceClock(3600_000))}>+1 HOUR</button>
-            <button className="btn text-[7px]" onClick={() => withSwing(() => s.advanceClock(4 * 3600_000))}>+4 HOURS</button>
-            <button className="btn text-[7px]" onClick={() => withSwing(s.skipToTonight)}>SKIP TO 11:30PM</button>
-            <button className="btn text-[7px]" onClick={() => withSwing(s.advanceWeek)}>+1 WEEK</button>
-          </div>
-          <div className="font-term text-dim text-xs pt-1">
-            Benchmarks are fixed: {s.ymmotName} 70% · {s.rival.name} 90%.
-          </div>
-          <button className="btn btn-gold w-full text-[7px] mt-1" onClick={s.resetToSeed}>↺ RESET TO SEED</button>
-        </div>
-      )}
-      <button
-        className="btn btn-gold !p-2 text-[8px] rounded-none"
-        onClick={() => setOpen((o) => !o)}
-        title="demo controls"
-      >
-        {open ? '▼' : '⏱'}
-      </button>
-    </div>
   )
 }
 
