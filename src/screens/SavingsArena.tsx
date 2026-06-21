@@ -123,7 +123,7 @@ function Dashboard({ view: v }: { view: SavingsView }) {
       </Panel>
 
       {/* Fighters — you vs the pace rival */}
-      <Panel className="crt overflow-hidden">
+      <Panel className="crt overflow-hidden" dataTour="save-arena">
         <div className="text-center font-pixel text-[11px] text-cyan mb-2">DAY {v.day}</div>
         <div className="grid grid-cols-2 items-end gap-1">
           <Fighter who="hero" stage={youStage(v)} name="YOU" amount={v.you} tone="text-save" caption={v.status === 'ahead' ? 'AHEAD' : 'BEHIND'} />

@@ -22,7 +22,7 @@ export function SavingsLibrary() {
 
   return (
     <div className="p-3 space-y-3 anim-rise">
-      <Panel accent="save" title="📚 SAVINGS LIBRARY" className="crt">
+      <Panel accent="save" title="📚 SAVINGS LIBRARY" className="crt" dataTour="save-library">
         <p className="font-term text-dim text-base">
           Deploy a challenge to race its built-in schedule, or set your own custom target. Switching
           banks your current savings to your lifetime total, then starts the new goal fresh at $0.

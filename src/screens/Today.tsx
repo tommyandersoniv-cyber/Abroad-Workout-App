@@ -101,7 +101,7 @@ export function Today() {
             ),
           )}
           {quickSave && (
-            <div className="pt-2 border-t border-line/50">
+            <div className="pt-2 border-t border-line/50" data-tour="save-quick">
               <SaveRow quick={quickSave} />
             </div>
           )}

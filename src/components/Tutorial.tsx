@@ -4,12 +4,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { PixelButton } from './ui'
 import { useGameStore } from '../store/useGameStore'
+import { useSavingsStore } from '../store/useSavingsStore'
+import { useMode } from '../store/useMode'
 import { useOnboarding } from '../store/useOnboarding'
 import { useNav, type Screen } from '../store/useNav'
 
 interface Step {
   screen: Screen
   param?: string
+  /** Which top-level mode this step belongs to (default workout). */
+  mode?: 'workout' | 'savings'
   target?: string // [data-tour=…] element to spotlight + zoom
   title: string
   body: string
@@ -72,6 +76,27 @@ const STEPS: Step[] = [
     body: 'Auto-generated reviews: Weekly (you vs last week), Monthly (you vs both rivals, with tips), and Yearly (your growth) — all largely visual.',
   },
   {
+    screen: 'savings',
+    mode: 'savings',
+    target: '[data-tour="save-arena"]',
+    title: 'A SECOND GAME — SAVINGS',
+    body: 'Tap 💰 at the top of the Arena to flip into Savings mode (it turns green). Same idea, new score: money saved. You race a perfect-discipline you who banks on schedule, and the gap is the whole game.',
+  },
+  {
+    screen: 'savingsLibrary',
+    mode: 'savings',
+    target: '[data-tour="save-library"]',
+    title: 'THE SAVINGS LIBRARY',
+    body: 'Deploy a ready-made challenge — 100 Envelopes, 52-Week, $5k biweekly and more — or set a custom target (a total, a deadline, a pace). Switching goals banks what you’ve saved into your lifetime total.',
+  },
+  {
+    screen: 'today',
+    mode: 'workout',
+    target: '[data-tour="save-quick"]',
+    title: 'SAVE WITHOUT SWITCHING',
+    body: 'Once a goal is live it shows up right here in Weekly Routines — one tap banks the amount due, so you can log savings from the workout side without ever changing modes.',
+  },
+  {
     screen: 'arena',
     title: 'YOU’RE READY',
     body: 'That sample data was just for the tour. Your real journey starts now — Day 1, zero XP, the rivals at zero too. Show up daily and out-work the ghost.',
@@ -110,6 +135,7 @@ export function Tutorial() {
     let cancelled = false
     clearSpot()
     setRing(null)
+    useMode.getState().setMode(cur.mode ?? 'workout')
     go(cur.screen, cur.param)
     const main = document.querySelector('main')
 
@@ -141,7 +167,9 @@ export function Tutorial() {
         const tr = el.getBoundingClientRect()
         setRing({ top: tr.top - fr.top - 6, left: tr.left - fr.left - 6, width: tr.width + 12, height: tr.height + 12 })
       }, 300)
-    }, 150)
+      // Longer settle so cross-mode re-renders (workout ⇄ savings) finish laying
+      // out before we scroll/measure — keeps the spotlight from landing low.
+    }, 260)
 
     return () => {
       cancelled = true
@@ -152,8 +180,28 @@ export function Tutorial() {
   // Always un-zoom the last element when the tour closes.
   useEffect(() => () => clearSpot(), [])
 
+  // Seed a demo savings goal so the savings steps show a live Arena + quick-save
+  // row. Cleared in done() so the real journey starts with no savings goal.
+  useEffect(() => {
+    const sav = useSavingsStore.getState()
+    if (!sav.configured) {
+      sav.deployGoal({
+        name: 'Japan Trip',
+        mode: 'target',
+        totalAmount: 1200,
+        timeframeNum: 12,
+        timeframeUnit: 'months',
+        pace: 'monthly',
+      })
+      sav.logContribution(80)
+      sav.logContribution(70)
+    }
+  }, [])
+
   function done() {
     clearSpot()
+    useMode.getState().setMode('workout')
+    useSavingsStore.getState().resetSavings()
     finishOnboarding()
     finishPhase()
     go('arena')
