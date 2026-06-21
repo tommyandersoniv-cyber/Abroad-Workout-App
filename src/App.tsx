@@ -51,6 +51,7 @@ export default function App() {
   const init = useGameStore((s) => s.init)
   const onboarded = useGameStore((s) => s.onboarded)
   const phase = useOnboarding((o) => o.phase)
+  const mode = useMode((m) => m.mode)
 
   useEffect(() => {
     init()
@@ -75,7 +76,10 @@ export default function App() {
   const Current = SCREENS[screen]
 
   return (
-    <div className="h-[100dvh] w-full flex items-stretch justify-center bg-ink overflow-hidden" style={backdrop}>
+    <div
+      className={`h-[100dvh] w-full flex items-stretch justify-center bg-ink overflow-hidden ${mode === 'savings' ? 'mode-savings' : ''}`}
+      style={mode === 'savings' ? backdropSavings : backdrop}
+    >
       <div className="relative w-full max-w-[430px] h-[100dvh] bg-night flex flex-col crt overflow-hidden shadow-2xl">
         <TopBar />
         <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar pb-4">
@@ -93,6 +97,12 @@ export default function App() {
 const backdrop: CSSProperties = {
   background:
     'radial-gradient(circle at 50% 0%, #1a1033 0%, #07040f 70%), repeating-linear-gradient(0deg, transparent, transparent 22px, rgba(75,46,137,0.06) 23px)',
+}
+
+// Green backdrop for Savings mode (mirrors `backdrop` but in the money palette).
+const backdropSavings: CSSProperties = {
+  background:
+    'radial-gradient(circle at 50% 0%, #0d2a1c 0%, #03100a 70%), repeating-linear-gradient(0deg, transparent, transparent 22px, rgba(43,138,89,0.06) 23px)',
 }
 
 function TopBar() {

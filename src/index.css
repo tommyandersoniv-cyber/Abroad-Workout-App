@@ -34,6 +34,21 @@
   color-scheme: dark;
 }
 
+/* ── Savings mode: re-tint the whole chrome green ─────────────────────────── */
+/* Overriding the palette vars on the frame cascades to every panel, border,
+   button and bar inside — so the mode reads unmistakably green vs the workout
+   side's indigo, with zero per-component changes. Accent colours (save green,
+   gold, the blue/violet rivals) are left intact. */
+.mode-savings {
+  --color-night: #07160e;
+  --color-panel: #0d2418;
+  --color-panel2: #123320;
+  --color-panel3: #1c4a31;
+  --color-ink: #03100a;
+  --color-line: #2b8a59;
+  --color-dim: #8fcaa9;
+}
+
 html,
 body,
 #root {
