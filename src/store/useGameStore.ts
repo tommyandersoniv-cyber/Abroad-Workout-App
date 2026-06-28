@@ -19,6 +19,9 @@ import {
   maxXP,
 } from '../engine'
 import { ACTIVITY_BY_ID } from '../seed/activities'
+import { DEFAULT_PLAN_ID } from '../seed/plans'
+import { useReflection } from './useReflection'
+import { reflectionPlayerScore, reflectionRivalScore, reflectionMax } from '../seed/reflection'
 import { buildSeedLog, buildDemoLog, computeStartDate, computeDemoStartDate, DEFAULT_RIVAL } from '../seed'
 import { RUN_WEEKDAYS } from '../seed/social'
 import { MS_DAY, MS_WEEK, startOfDay, startOfWeek, weekday, dateKey } from '../engine/time'
@@ -50,6 +53,8 @@ interface GameState {
   onboarded: boolean
   /** sign-up profile */
   profile: { name: string; dob: string } | null
+  /** active weekly plan id — decides which workout is scheduled each day */
+  planId: string
 
   // lifecycle
   init: () => void
@@ -63,10 +68,11 @@ interface GameState {
   pushItem: (activityId: string, key: string) => void
   logRun: (miles: number, key?: string) => 'banked' | 'under-target'
   logExtra: () => void
-  completeWorkout: () => void
+  completeWorkout: (xp?: number) => void
 
   // config
   setDifficulty: (d: Difficulty) => void
+  setPlan: (planId: string) => void
   setRival: (patch: Partial<RivalConfig>) => void
   setYmmotName: (name: string) => void
   setPlayer: (patch: { name?: string; spriteId?: string }) => void
@@ -138,6 +144,7 @@ export const useGameStore = create<GameState>()(
       runCarry: {},
       onboarded: false,
       profile: null,
+      planId: DEFAULT_PLAN_ID,
 
       now: () => realNow(get()),
 
@@ -212,10 +219,25 @@ export const useGameStore = create<GameState>()(
         }
       },
 
-      completeWorkout: () => {
+      // Log the day's assigned workout as completed. A swapped-in workout banks a
+      // reduced xp (passed in) but still counts as done — no miss penalty, streak
+      // intact. Defaults to the activity's full xp (+10).
+      completeWorkout: (xp) => {
         const s = get()
         if (s.isLoggedToday('workout')) return
-        get().toggleActivity('workout')
+        const a = ACTIVITY_BY_ID.workout
+        const now = realNow(s)
+        const key = occurrenceKey(a, now)
+        const entry: LogEntry = {
+          id: `log:workout:${key}:${now}`,
+          activityId: 'workout',
+          dateKey: key,
+          value: 1,
+          xp: xp ?? a.xp,
+          status: 'completed',
+          at: now,
+        }
+        set({ log: [...s.log, entry] })
       },
 
       // Toggle a day-pinned scheduled item (e.g. a phone call) under a specific
@@ -307,6 +329,7 @@ export const useGameStore = create<GameState>()(
       },
 
       setDifficulty: (d) => set({ rival: { ...get().rival, difficulty: d } }),
+      setPlan: (planId) => set({ planId }),
       setRival: (patch) => set({ rival: { ...get().rival, ...patch } }),
       setYmmotName: (name) => set({ ymmotName: name }),
       setPlayer: (patch) =>
@@ -414,6 +437,7 @@ export const useGameStore = create<GameState>()(
         runCarry: s.runCarry,
         onboarded: s.onboarded,
         profile: s.profile,
+        planId: s.planId,
       }),
     },
   ),
@@ -425,25 +449,36 @@ export const YMMOT_HOLD = 0.7 // "Ymmot" — the human-achievable version
 
 // ── Derived selectors (computed from the engine, never stored) ─────────────
 
+// Reflection points fold into the same totals as workouts: the player's net
+// from closed days, and each rival's hold × reflection max (identical to how
+// their workout points are computed). Read live from the reflection store.
+function reflYou(now: number): number {
+  const r = useReflection.getState()
+  return reflectionPlayerScore(r.byDay, r.startMs, now)
+}
+function reflRival(now: number, hold: number): number {
+  return reflectionRivalScore(useReflection.getState().startMs, now, hold)
+}
+
 export function selectPlayerXP(s: GameState): number {
   const now = s.now()
-  const total = sumXP(s.log.filter((e) => e.at <= now))
+  const total = sumXP(s.log.filter((e) => e.at <= now)) + reflYou(now)
   return s.settings.allowNegative ? total : Math.max(0, total)
 }
 
 /** Tommy (90%) is the primary nemesis — the gap, tiers and tracker measure vs him. */
 export function selectRivalXP(s: GameState): number {
-  return engineRivalXP(catalog(), s.startMs, s.now(), TOMMY_HOLD)
+  return engineRivalXP(catalog(), s.startMs, s.now(), TOMMY_HOLD) + reflRival(s.now(), TOMMY_HOLD)
 }
 export const selectTommyXP = selectRivalXP
 
 /** Ymmot (70%) — the constant human-consistency benchmark. */
 export function selectYmmotXP(s: GameState): number {
-  return engineRivalXP(catalog(), s.startMs, s.now(), YMMOT_HOLD)
+  return engineRivalXP(catalog(), s.startMs, s.now(), YMMOT_HOLD) + reflRival(s.now(), YMMOT_HOLD)
 }
 
 export function selectMaxXP(s: GameState): number {
-  return maxXP(catalog(), s.startMs, s.now())
+  return maxXP(catalog(), s.startMs, s.now()) + reflectionMax(useReflection.getState().startMs, s.now())
 }
 
 export interface GapSample {
@@ -460,12 +495,12 @@ export function selectGapHistory(s: GameState, days: number): GapSample[] {
   const firstDay = startOfDay(now) - (days - 1) * MS_DAY
   for (let d = Math.max(firstDay, startOfDay(s.startMs)); d <= startOfDay(now); d += MS_DAY) {
     const dayEnd = Math.min(now, endOfDay(d))
-    const you = sumXP(s.log.filter((e) => e.at <= dayEnd))
+    const you = sumXP(s.log.filter((e) => e.at <= dayEnd)) + reflYou(dayEnd)
     out.push({
       key: new Date(d).toISOString().slice(0, 10),
       you,
-      tommy: engineRivalXP(catalog(), s.startMs, dayEnd, TOMMY_HOLD),
-      ymmot: engineRivalXP(catalog(), s.startMs, dayEnd, YMMOT_HOLD),
+      tommy: engineRivalXP(catalog(), s.startMs, dayEnd, TOMMY_HOLD) + reflRival(dayEnd, TOMMY_HOLD),
+      ymmot: engineRivalXP(catalog(), s.startMs, dayEnd, YMMOT_HOLD) + reflRival(dayEnd, YMMOT_HOLD),
     })
   }
   return out
@@ -480,12 +515,12 @@ export function selectGapDeltaToday(s: GameState): { ymmot: number; tommy: numbe
   // The last instant of yesterday — *before* the CPUs banked their overnight
   // lump at this morning's midnight — so that lump shows up as today's change.
   const then = startOfDay(now) - 1
-  const youNow = sumXP(s.log.filter((e) => e.at <= now))
-  const youThen = sumXP(s.log.filter((e) => e.at <= then))
-  const tNow = engineRivalXP(catalog(), s.startMs, now, TOMMY_HOLD)
-  const tThen = engineRivalXP(catalog(), s.startMs, then, TOMMY_HOLD)
-  const yNow = engineRivalXP(catalog(), s.startMs, now, YMMOT_HOLD)
-  const yThen = engineRivalXP(catalog(), s.startMs, then, YMMOT_HOLD)
+  const youNow = sumXP(s.log.filter((e) => e.at <= now)) + reflYou(now)
+  const youThen = sumXP(s.log.filter((e) => e.at <= then)) + reflYou(then)
+  const tNow = engineRivalXP(catalog(), s.startMs, now, TOMMY_HOLD) + reflRival(now, TOMMY_HOLD)
+  const tThen = engineRivalXP(catalog(), s.startMs, then, TOMMY_HOLD) + reflRival(then, TOMMY_HOLD)
+  const yNow = engineRivalXP(catalog(), s.startMs, now, YMMOT_HOLD) + reflRival(now, YMMOT_HOLD)
+  const yThen = engineRivalXP(catalog(), s.startMs, then, YMMOT_HOLD) + reflRival(then, YMMOT_HOLD)
   return {
     tommy: youNow - tNow - (youThen - tThen),
     ymmot: youNow - yNow - (youThen - yThen),
@@ -497,8 +532,8 @@ export function selectGapTrend(s: GameState): { gap: number; delta7: number } {
   const now = s.now()
   const gapNow = selectPlayerXP(s) - selectRivalXP(s)
   const wkAgo = Math.max(startOfDay(s.startMs), now - 7 * MS_DAY)
-  const youThen = sumXP(s.log.filter((e) => e.at <= wkAgo))
-  const tommyThen = engineRivalXP(catalog(), s.startMs, wkAgo, TOMMY_HOLD)
+  const youThen = sumXP(s.log.filter((e) => e.at <= wkAgo)) + reflYou(wkAgo)
+  const tommyThen = engineRivalXP(catalog(), s.startMs, wkAgo, TOMMY_HOLD) + reflRival(wkAgo, TOMMY_HOLD)
   return { gap: gapNow, delta7: gapNow - (youThen - tommyThen) }
 }
 

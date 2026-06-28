@@ -1,13 +1,15 @@
-import { Panel, Stat } from '../components/ui'
+import { Panel, PixelButton, Stat } from '../components/ui'
 import { Sprite } from '../components/Sprite'
 import { ConsistencyTracker } from '../components/ConsistencyTracker'
 import { useTick } from '../hooks/useNow'
+import { useNav } from '../store/useNav'
 import {
   selectGapHistory,
   selectMaxXP,
   selectPlayerXP,
   selectRivalXP,
   selectYmmotXP,
+  selectPendingReports,
   useGameStore,
   type GapSample,
 } from '../store/useGameStore'
@@ -18,6 +20,8 @@ import { startOfDay, MS_DAY } from '../engine/time'
 export function Stats() {
   useTick(1000)
   const s = useGameStore()
+  const go = useNav((n) => n.go)
+  const pending = selectPendingReports(s).any
   const you = selectPlayerXP(s)
   const tommy = selectRivalXP(s)
   const ymmot = selectYmmotXP(s)
@@ -144,6 +148,11 @@ export function Stats() {
           </div>
         )}
       </Panel>
+
+      <PixelButton variant="gold" className="w-full flex items-center justify-center gap-2" onClick={() => go('reports')}>
+        📊 REPORTS
+        {pending && <span className="font-pixel text-[7px]">● NEW</span>}
+      </PixelButton>
     </div>
   )
 }

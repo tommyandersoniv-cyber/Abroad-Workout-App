@@ -17,7 +17,6 @@ import { daysBetween } from '../engine/time'
 import { pickTaunt } from '../seed/rival'
 import { buildTodayModel } from '../lib/today'
 import { ConsistencyTracker } from '../components/ConsistencyTracker'
-import { ModeToggle } from '../components/ModeToggle'
 import type { GapState } from '../seed/rival'
 
 export function Arena() {
@@ -53,11 +52,10 @@ export function Arena() {
     [gapY, Math.round(ymmot / 25)],
   )
 
-  const today = buildTodayModel(s.startMs, s.now(), s.log, s.deferrals, s.runCarry)
+  const today = buildTodayModel(s.startMs, s.now(), s.log, s.deferrals, s.runCarry, s.planId)
 
   return (
     <div className="p-3 space-y-3 anim-rise">
-      <ModeToggle />
       {/* ── Three-way clash: ME vs YMMOT (70%) vs TOMMY (90%) ────────────── */}
       <Panel className="crt overflow-hidden">
         <div className="text-center font-pixel text-[11px] text-cyan mb-2" data-tour="day">DAY {day}</div>
@@ -99,7 +97,7 @@ export function Arena() {
       </Panel>
 
       {/* ── Both rivals talk ─────────────────────────────────────────────── */}
-      <button onClick={() => go('rival')} className="block w-full text-left">
+      <button onClick={() => go('settings')} className="block w-full text-left">
         <Panel className="space-y-3">
           <div className="flex items-center gap-3">
             <Sprite who="rival" stage={YMMOT_STAGE} px={4} />

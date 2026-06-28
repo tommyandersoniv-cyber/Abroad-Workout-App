@@ -17,8 +17,24 @@ const COOLDOWN: WorkoutItem[] = [
   'cat-cow-cd', 'supine-twist-r', 'supine-twist-l', 'wide-forward-fold',
 ].map((exerciseId) => ({ exerciseId, durationSec: 30 }))
 
+/** A rep-based exercise done for `s` sets (the player cycles Set 1…N). */
 function sets(exerciseId: string, s: number, reps: string): WorkoutItem {
   return { exerciseId, sets: s, reps }
+}
+
+/** A timed hold done for `s` sets — countdown, then `restSec` rest, repeated. */
+function holdSets(exerciseId: string, s: number, durationSec: number, restSec = 20): WorkoutItem {
+  return { exerciseId, sets: s, durationSec, restSec }
+}
+
+/** A single timed hold (one per circuit round). */
+function hold(exerciseId: string, durationSec: number): WorkoutItem {
+  return { exerciseId, durationSec }
+}
+
+/** A single rep-based move (one per circuit round). */
+function reps(exerciseId: string, r: string): WorkoutItem {
+  return { exerciseId, reps: r }
 }
 
 export const WORKOUTS: Workout[] = [
@@ -36,7 +52,7 @@ export const WORKOUTS: Workout[] = [
         sets('pike-pushups', 3, '8–12'),
         sets('plank-to-pushup', 3, '10–15'),
       ] },
-      { kind: 'skill', items: [sets('wall-handstand', 3, '20–30s'), sets('tuck-lsit', 3, '10–15s')] },
+      { kind: 'skill', items: [holdSets('wall-handstand', 3, 25), holdSets('tuck-lsit', 3, 12)] },
       { kind: 'cooldown', items: COOLDOWN },
     ],
   },
@@ -73,8 +89,8 @@ export const WORKOUTS: Workout[] = [
         sets('plank-to-pushup', 3, '15–20'),
       ] },
       { kind: 'skill', items: [
-        sets('free-handstand', 3, '20–30s'),
-        sets('lsit-hold', 3, '10–20s'),
+        holdSets('free-handstand', 3, 25),
+        holdSets('lsit-hold', 3, 15),
         sets('muscle-up-prog', 3, '3–5'),
       ] },
       { kind: 'cooldown', items: COOLDOWN },
@@ -104,13 +120,14 @@ export const WORKOUTS: Workout[] = [
     name: 'Mobility A',
     type: 'mobility',
     blocks: [
-      { kind: 'main', items: [
-        sets('hang', 3, '30–60s'),
-        sets('deep-squat', 3, '30–60s'),
-        sets('couch-stretch', 3, '30–60s'),
-        sets('jefferson-curl', 3, '30–60s'),
-        sets('crab-stretch', 3, '10'),
-        sets('pigeon-hinge', 3, '10 + 10s'),
+      // Circuit: run the whole block, then repeat for 3 rounds.
+      { kind: 'main', rounds: 3, items: [
+        hold('hang', 45),
+        hold('deep-squat', 45),
+        hold('couch-stretch', 45),
+        hold('jefferson-curl', 45),
+        reps('crab-stretch', '10'),
+        reps('pigeon-hinge', '10 + 10s'),
       ] },
     ],
   },
@@ -119,13 +136,13 @@ export const WORKOUTS: Workout[] = [
     name: 'Mobility B',
     type: 'mobility',
     blocks: [
-      { kind: 'main', items: [
-        sets('hang', 3, '30–60s'),
-        sets('sl-hip-hinge', 3, '10 + 10s'),
-        sets('wall-butterfly', 3, '10 + 10s'),
-        sets('hip-ir-9090', 3, '5–10'),
-        sets('couch-stretch', 3, '30–60s'),
-        sets('butcher-block', 3, '30–60s'),
+      { kind: 'main', rounds: 3, items: [
+        hold('hang', 45),
+        reps('sl-hip-hinge', '10 + 10s'),
+        reps('wall-butterfly', '10 + 10s'),
+        reps('hip-ir-9090', '5–10'),
+        hold('couch-stretch', 45),
+        hold('butcher-block', 45),
       ] },
     ],
   },
@@ -164,10 +181,11 @@ export const WORKOUTS: Workout[] = [
     name: 'Mobility B + MITT',
     type: 'mitt',
     blocks: [
-      { kind: 'main', items: [
-        sets('hang', 2, '30–60s'),
-        sets('wall-butterfly', 2, '10 + 10s'),
-        sets('couch-stretch', 2, '30–60s'),
+      // Mobility circuit (2 rounds) → MITT conditioning circuit.
+      { kind: 'main', rounds: 2, items: [
+        hold('hang', 45),
+        reps('wall-butterfly', '10 + 10s'),
+        hold('couch-stretch', 45),
       ] },
       { kind: 'main', items: [
         'jumping-jacks', 'squat-jacks', 'jump-squats', 'half-burpees', 'mountain-climbers',
@@ -175,6 +193,27 @@ export const WORKOUTS: Workout[] = [
     ],
   },
 ]
+
+// ── Morning Stretch (the daily "stretch" habit's guided flow) ──────────────
+// Total-body routine from Appendix A.1, in order. Equal 40s holds → 8:00 total
+// (12 × 40s), comfortably inside the 5–10 min target.
+export const MORNING_STRETCH: Workout = {
+  id: 'morning-stretch',
+  name: 'Morning Stretch',
+  type: 'mobility',
+  blocks: [
+    {
+      kind: 'main',
+      items: [
+        'lumbar-rotation', 'thoracic-rotation', 'upper-trap', 'cat-cow',
+        'hip-flexor-r', 'hamstring-l', 'adductor-l', 'adductor-r',
+        'hip-flexor-l', 'hamstring-r', 'chest-opener', 'overhead-w',
+      ].map((exerciseId) => ({ exerciseId, durationSec: 40 })),
+    },
+  ],
+}
+
+WORKOUTS.push(MORNING_STRETCH)
 
 export const WORKOUT_BY_ID: Record<string, Workout> = Object.fromEntries(
   WORKOUTS.map((w) => [w.id, w]),

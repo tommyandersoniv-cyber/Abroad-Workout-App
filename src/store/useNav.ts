@@ -4,11 +4,14 @@ export type Screen =
   | 'arena'
   | 'today'
   | 'player'
+  | 'extra'
+  | 'habit'
+  | 'reflect'
+  | 'reflectGuide'
   | 'exercise'
   | 'library'
   | 'stats'
   | 'catalog'
-  | 'rival'
   | 'settings'
   | 'reports'
   | 'savings'
@@ -21,11 +24,14 @@ interface NavState {
   screen: Screen
   /** route params (exercise id, workout id) */
   param?: string
-  go: (screen: Screen, param?: string) => void
+  /** secondary route flag, e.g. 'extra' to mark an off-schedule guided session */
+  variant?: string
+  go: (screen: Screen, param?: string, variant?: string) => void
 }
 
 export const useNav = create<NavState>((set) => ({
   screen: 'arena',
   param: undefined,
-  go: (screen, param) => set({ screen, param }),
+  variant: undefined,
+  go: (screen, param, variant) => set({ screen, param, variant }),
 }))

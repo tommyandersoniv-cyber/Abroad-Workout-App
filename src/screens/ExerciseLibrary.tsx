@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Panel } from '../components/ui'
+import { Panel, PixelButton } from '../components/ui'
 import { PixelMedia } from '../components/PixelMedia'
 import { EXERCISES } from '../seed/exercises'
 import { useNav } from '../store/useNav'
@@ -29,6 +29,11 @@ export function ExerciseLibrary() {
 
   return (
     <div className="p-3 space-y-3 anim-rise">
+      {/* Jump straight into a guided session (same picker as Today's extra workout). */}
+      <PixelButton variant="gold" className="w-full" onClick={() => go('extra')}>
+        🏋 WORKOUTS
+      </PixelButton>
+
       <Panel accent="you" title="EXERCISE LIBRARY" dataTour="library">
         <input
           placeholder="search movements…"

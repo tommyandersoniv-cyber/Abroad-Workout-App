@@ -3,7 +3,7 @@ import { useNav, type Screen } from './store/useNav'
 import { useGameStore, selectPlayerXP, selectRivalXP, selectYmmotXP } from './store/useGameStore'
 import { useSavingsStore, selectSavedTotal } from './store/useSavingsStore'
 import { useMode } from './store/useMode'
-import { MODE_HOME } from './components/ModeToggle'
+import { MODE_HOME, switchMode } from './components/ModeToggle'
 import { money } from './savings'
 import { useFx } from './store/useFx'
 import { useTick } from './hooks/useNow'
@@ -11,11 +11,14 @@ import { tierForGap, combinedGap, TIER_NAMES } from './engine/levels'
 import { Arena } from './screens/Arena'
 import { Today } from './screens/Today'
 import { WorkoutPlayer } from './screens/WorkoutPlayer'
+import { ExtraWorkout } from './screens/ExtraWorkout'
+import { HabitSession } from './screens/HabitSession'
+import { Reflection } from './screens/Reflection'
+import { ReflectionGuide } from './screens/ReflectionGuide'
 import { ExerciseLibrary } from './screens/ExerciseLibrary'
 import { ExerciseDetail } from './screens/ExerciseDetail'
 import { Stats } from './screens/Stats'
 import { Catalog } from './screens/Catalog'
-import { RivalSetup } from './screens/RivalSetup'
 import { Settings } from './screens/Settings'
 import { Reports } from './screens/Reports'
 import { SavingsArena } from './screens/SavingsArena'
@@ -27,16 +30,20 @@ import { selectPendingReports } from './store/useGameStore'
 import { Signup } from './components/Signup'
 import { Tutorial } from './components/Tutorial'
 import { useOnboarding } from './store/useOnboarding'
+import { useDrawer } from './store/useDrawer'
 
 const SCREENS: Record<Screen, ComponentType> = {
   arena: Arena,
   today: Today,
   player: WorkoutPlayer,
+  extra: ExtraWorkout,
+  habit: HabitSession,
+  reflect: Reflection,
+  reflectGuide: ReflectionGuide,
   exercise: ExerciseDetail,
   library: ExerciseLibrary,
   stats: Stats,
   catalog: Catalog,
-  rival: RivalSetup,
   settings: Settings,
   reports: Reports,
   savings: SavingsArena,
@@ -74,18 +81,43 @@ export default function App() {
   }, [])
 
   const Current = SCREENS[screen]
+  const drawerEnabled = mode === 'workout'
+
+  // Edge-swipe to open the drawer (swipe right from the left edge) and swipe
+  // left to close it. Only active in workout mode, where the drawer lives.
+  const touch = useRef<{ x: number; y: number } | null>(null)
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0]
+    touch.current = { x: t.clientX, y: t.clientY }
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!drawerEnabled || !touch.current) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - touch.current.x
+    const dy = t.clientY - touch.current.y
+    touch.current = null
+    if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy)) return // not a horizontal swipe
+    const { open, setOpen } = useDrawer.getState()
+    if (dx > 0 && !open && t.clientX - dx < 40) setOpen(true) // started near the left edge
+    else if (dx < 0 && open) setOpen(false)
+  }
 
   return (
     <div
       className={`h-[100dvh] w-full flex items-stretch justify-center bg-ink overflow-hidden ${mode === 'savings' ? 'mode-savings' : ''}`}
       style={mode === 'savings' ? backdropSavings : backdrop}
     >
-      <div className="relative w-full max-w-[430px] h-[100dvh] bg-night flex flex-col crt overflow-hidden shadow-2xl">
+      <div
+        className="relative w-full max-w-[430px] h-[100dvh] bg-night flex flex-col crt overflow-hidden shadow-2xl"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <TopBar />
         <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar pb-4">
           <Current />
         </main>
         <BottomNav />
+        {drawerEnabled && <Drawer />}
         <FxLayer />
         {!onboarded && phase === 'tutorial' && <Tutorial />}
         {!onboarded && phase === 'signup' && <Signup />}
@@ -140,6 +172,16 @@ function TopBar() {
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}
     >
       <div className="flex items-center gap-2">
+        {!isSavings && (
+          <button
+            className="font-pixel text-[14px] text-dim leading-none -ml-0.5"
+            onClick={() => useDrawer.getState().toggle()}
+            title="menu"
+            aria-label="open menu"
+          >
+            ≡
+          </button>
+        )}
         <button className="font-pixel text-[12px] text-gold" onClick={() => useNav.getState().go(MODE_HOME[mode])}>
           RIVAL
         </button>
@@ -167,11 +209,13 @@ function TopBar() {
 
 type NavItem = { id: Screen; label: string; icon: string; match?: Screen[] }
 
+// Workout mode: Today (left) · Arena (center) · Stats (right). The secondary
+// screens (Library / Catalog / Settings) live in the slide-in Drawer; Reports
+// is a button on the Stats page.
 const WORKOUT_NAV: NavItem[] = [
-  { id: 'stats', label: 'STATS', icon: '📊' },
-  { id: 'today', label: 'TODAY', icon: '✓' },
+  { id: 'today', label: 'TODAY', icon: '💪', match: ['today', 'player', 'extra'] },
   { id: 'arena', label: 'ARENA', icon: '⚔' },
-  { id: 'library', label: 'LIB', icon: '📖' },
+  { id: 'stats', label: 'STATS', icon: '📊', match: ['stats', 'reports'] },
 ]
 
 const SAVINGS_NAV: NavItem[] = [
@@ -185,78 +229,94 @@ function BottomNav() {
   const screen = useNav((n) => n.screen)
   const go = useNav((n) => n.go)
   const mode = useMode((m) => m.mode)
-  const [menu, setMenu] = useState(false)
-  const pending = selectPendingReports(useGameStore.getState()).any
+  const isSavings = mode === 'savings'
+  const items = isSavings ? SAVINGS_NAV : WORKOUT_NAV
 
-  // Savings mode: three tabs, no overflow menu.
-  if (mode === 'savings') {
-    return (
-      <nav
-        className="shrink-0 grid grid-cols-3 border-t-3 border-line bg-panel z-30"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        {SAVINGS_NAV.map((n) => {
-          const active = n.match ? n.match.includes(screen) : screen === n.id
-          return (
-            <button
-              key={n.id}
-              onClick={() => go(n.id)}
-              className={`py-2 flex flex-col items-center gap-0.5 ${active ? 'bg-panel3' : ''}`}
-            >
-              <span className="text-lg leading-none">{n.icon}</span>
-              <span className={`font-pixel text-[6px] ${active ? 'text-save' : 'text-dim'}`}>{n.label}</span>
-            </button>
-          )
-        })}
-      </nav>
-    )
-  }
+  return (
+    <nav
+      className="shrink-0 grid grid-cols-3 border-t-3 border-line bg-panel z-30"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      {items.map((n) => {
+        const active = n.match ? n.match.includes(screen) : screen === n.id
+        return (
+          <button
+            key={n.id}
+            onClick={() => go(n.id)}
+            className={`py-2 flex flex-col items-center gap-0.5 ${active ? 'bg-panel3' : ''}`}
+          >
+            <span className="text-lg leading-none">{n.icon}</span>
+            <span className={`font-pixel text-[6px] ${active ? (isSavings ? 'text-save' : 'text-gold') : 'text-dim'}`}>
+              {n.label}
+            </span>
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
+// Slide-in navigation drawer for the secondary workout screens. Opened from the
+// ≡ button in the TopBar or by an edge-swipe (see App). Reports lives on Stats,
+// so it's not here.
+const DRAWER_ITEMS: { id: Screen; label: string; icon: string }[] = [
+  { id: 'library', label: 'LIBRARY', icon: '📖' },
+  { id: 'catalog', label: 'CATALOG', icon: '📋' },
+  { id: 'reflectGuide', label: 'THE EIGHT', icon: '🪞' },
+  { id: 'settings', label: 'SETTINGS', icon: '⚙' },
+]
+
+function Drawer() {
+  const open = useDrawer((d) => d.open)
+  const setOpen = useDrawer((d) => d.setOpen)
+  const screen = useNav((n) => n.screen)
+  const go = useNav((n) => n.go)
 
   return (
     <>
-      {menu && (
-        <div className="absolute inset-0 z-40 bg-ink/70" onClick={() => setMenu(false)}>
-          <div className="absolute bottom-16 inset-x-3 panel p-2 space-y-2 anim-rise" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-gold w-full text-left flex items-center justify-between" onClick={() => { go('reports'); setMenu(false) }}>
-              <span>📊 REPORTS</span>
-              {pending && <span className="font-pixel text-[7px]">● NEW</span>}
-            </button>
-            {([['catalog', '📋 CATALOG / BUILDER'], ['rival', '👹 RIVALS & NAMES'], ['settings', '⚙ SETTINGS']] as const).map(
-              ([id, label]) => (
-                <button key={id} className="btn w-full text-left" onClick={() => { go(id); setMenu(false) }}>
-                  {label}
-                </button>
-              ),
-            )}
-          </div>
-        </div>
-      )}
-      <nav
-        className="shrink-0 grid grid-cols-5 border-t-3 border-line bg-panel z-30"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      {/* backdrop */}
+      <div
+        className="absolute inset-0 z-[60] bg-ink/70"
+        style={{ opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none', transition: 'opacity 200ms ease' }}
+        onClick={() => setOpen(false)}
+      />
+      {/* panel */}
+      <aside
+        className="absolute top-0 left-0 bottom-0 z-[61] w-60 max-w-[78%] bg-panel border-r-3 border-line flex flex-col"
+        style={{
+          transform: open ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 200ms ease',
+          paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
+        }}
       >
-        {WORKOUT_NAV.map((n) => {
-          const active = n.match ? n.match.includes(screen) : screen === n.id
-          return (
+        <div className="px-3 py-3 flex items-center justify-between border-b-3 border-line">
+          <span className="font-pixel text-[10px] text-gold">MENU</span>
+          <button className="font-pixel text-[9px] text-dim" onClick={() => setOpen(false)} aria-label="close menu">✕</button>
+        </div>
+        <nav className="p-2 space-y-2">
+          {DRAWER_ITEMS.map((it) => (
             <button
-              key={n.id}
-              onClick={() => go(n.id)}
-              className={`py-2 flex flex-col items-center gap-0.5 ${active ? 'bg-panel3' : ''}`}
+              key={it.id}
+              className={`btn w-full text-left ${screen === it.id ? 'btn-gold' : ''}`}
+              onClick={() => { go(it.id); setOpen(false) }}
             >
-              <span className="text-lg leading-none">{n.icon}</span>
-              <span className={`font-pixel text-[6px] ${active ? 'text-gold' : 'text-dim'}`}>{n.label}</span>
+              <span className="mr-2">{it.icon}</span>{it.label}
             </button>
-          )
-        })}
-        <button
-          onClick={() => setMenu((m) => !m)}
-          className={`relative py-2 flex flex-col items-center gap-0.5 ${['catalog', 'rival', 'settings', 'reports'].includes(screen) ? 'bg-panel3' : ''}`}
-        >
-          {pending && <span className="absolute top-1 right-3 w-2 h-2 bg-gold" style={{ boxShadow: '0 0 0 1px var(--color-ink)' }} />}
-          <span className="text-lg leading-none">≡</span>
-          <span className="font-pixel text-[6px] text-dim">MORE</span>
-        </button>
-      </nav>
+          ))}
+        </nav>
+
+        {/* Switch into Savings mode — pinned to the bottom of the drawer. */}
+        <div className="mt-auto p-2 border-t-3 border-line">
+          <button
+            className="btn btn-save w-full flex flex-col items-center gap-1 py-3"
+            onClick={() => switchMode('savings')}
+            title="switch to savings mode"
+          >
+            <span className="text-2xl leading-none">💰</span>
+            <span className="font-pixel text-[8px]">SAVINGS MODE</span>
+          </button>
+        </div>
+      </aside>
     </>
   )
 }

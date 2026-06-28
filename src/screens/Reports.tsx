@@ -15,6 +15,9 @@ import {
   youAt,
 } from '../lib/reports'
 import { combinedGap, tierForGap, TIER_NAMES, levelFor } from '../engine/levels'
+import { useReflection } from '../store/useReflection'
+import { weekKeys, dayScores, weekNeglected, loggedDayCount, type Dimension } from '../seed/reflection'
+import { MS_DAY } from '../engine/time'
 
 const TABS: { id: Period; label: string }[] = [
   { id: 'week', label: 'WEEKLY' },
@@ -87,6 +90,13 @@ function WeeklyReport({ index }: { index: number }) {
   const dNet = prev ? me.net - prev.net : me.net
   const pctText = prev && prev.net !== 0 ? ` (${dNet >= 0 ? '+' : ''}${Math.round((dNet / Math.abs(prev.net)) * 100)}%)` : ''
 
+  // Weekly reflection summary — per-day Potential Reached + neglected dimensions.
+  const byDay = useReflection((r) => r.byDay)
+  const keys = useMemo(() => weekKeys(win.a), [win.a])
+  const scores = dayScores(byDay, keys)
+  const loggedDays = loggedDayCount(byDay, keys)
+  const neglected = weekNeglected(byDay, keys, 2)
+
   return (
     <>
       <Panel className="text-center py-4">
@@ -118,6 +128,28 @@ function WeeklyReport({ index }: { index: number }) {
       <Panel title="WHERE THE XP CAME FROM">
         <CatBars me={me} />
       </Panel>
+
+      <Panel accent="gold" title="REFLECTION · POTENTIAL REACHED">
+        <ReflectBars scores={scores} startMs={win.a} />
+        <p className="font-term text-dim text-sm mt-2">
+          {loggedDays > 0
+            ? `${loggedDays}/7 ${loggedDays === 1 ? 'day' : 'days'} checked in. Empty bars are days you didn’t reflect.`
+            : 'No reflections logged this week yet — tap Reflection on Today to start.'}
+        </p>
+      </Panel>
+
+      {loggedDays > 0 && (
+        <Panel title="MOST NEGLECTED THIS WEEK">
+          <p className="font-term text-dim text-sm mb-3">
+            The two dimensions you tended least. A little attention next week goes a long way.
+          </p>
+          <div className="space-y-3">
+            {neglected.map((d) => (
+              <NeglectedCard key={d.id} dim={d} />
+            ))}
+          </div>
+        </Panel>
+      )}
 
       <Verdict
         good={me.net >= (prev?.net ?? 0)}
@@ -254,6 +286,61 @@ function YearlyReport({ index }: { index: number }) {
         badText="The line slipped this year. One disciplined month resets the trajectory."
       />
     </>
+  )
+}
+
+// ── Reflection visual bits ─────────────────────────────────────────────────
+const WD_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+
+function reflectColor(p: number): string {
+  return p >= 75 ? 'var(--color-you)' : p >= 38 ? 'var(--color-gold)' : 'var(--color-cyan)'
+}
+
+// 7-day vertical bar view of daily Potential Reached %. null = no check-in that
+// day → an empty track (distinct from a logged 0% day, which shows a sliver).
+function ReflectBars({ scores, startMs }: { scores: (number | null)[]; startMs: number }) {
+  const H = 96
+  return (
+    <div className="flex items-end justify-between gap-1.5">
+      {scores.map((sc, i) => {
+        const wd = new Date(startMs + i * MS_DAY).getDay() // 0=Sun
+        const label = WD_INITIALS[i] ?? ''
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center">
+            <div className="font-term text-dim text-[11px] leading-none mb-1">{sc === null ? '·' : sc}</div>
+            <div className="hud w-full p-[2px] flex items-end" style={{ height: H }}>
+              {sc !== null && (
+                <div
+                  className="bar-fill w-full"
+                  style={{ height: `${Math.max(4, sc)}%`, background: reflectColor(sc) }}
+                />
+              )}
+            </div>
+            <div className={`font-pixel text-[7px] mt-1 ${wd === 0 || wd === 6 ? 'text-gold' : 'text-dim'}`}>{label}</div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function NeglectedCard({ dim }: { dim: Dimension }) {
+  return (
+    <div className="panel-tight p-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xl leading-none">{dim.icon}</span>
+        <span className="font-pixel text-[9px] text-you">{dim.name}</span>
+      </div>
+      <p className="font-term text-dim text-sm mt-1 leading-snug">{dim.desc}</p>
+      <ol className="mt-2 space-y-1 font-term text-base">
+        {dim.actions.map((a, i) => (
+          <li key={i} className="flex gap-2">
+            <span className="font-pixel text-[8px] text-gold mt-1">{i + 1}</span>
+            <span>{a}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   )
 }
 

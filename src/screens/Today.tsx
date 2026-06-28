@@ -15,10 +15,12 @@ export function Today() {
   const go = useNav((n) => n.go)
   const say = useFx((f) => f.say)
 
-  const today = buildTodayModel(s.startMs, s.now(), s.log, s.deferrals, s.runCarry)
+  const today = buildTodayModel(s.startMs, s.now(), s.log, s.deferrals, s.runCarry, s.planId)
   const you = selectPlayerXP(s)
   const todayKey = dateKey(s.now())
   const quickSave = selectQuickSave(useSavingsStore())
+  // Weekly routine items (calls / runs) that land today — shown with the habits.
+  const dueToday = today.dayItems.filter((i) => i.effectiveDateKey === todayKey)
 
   const dateLabel = new Date(s.now()).toLocaleDateString(undefined, {
     weekday: 'long',
@@ -39,6 +41,54 @@ export function Today() {
         </div>
       </Panel>
 
+      {/* Reflection flow — morning intention → check-in → day reflected */}
+      <PixelButton variant="you" className="w-full" onClick={() => go('reflect')}>
+        🪞 REFLECTION
+      </PixelButton>
+
+      {/* Today's checklist: daily habits + any weekly routine due today + a
+          quick savings deposit — everything actionable today, in one place. */}
+      <Panel accent="you" title="DAILY HABITS" dataTour="habits">
+        <div className="space-y-1">
+          {today.daily.map((i) => (
+            <HabitRow
+              key={i.activity.id}
+              item={i}
+              onToggle={() => {
+                s.toggleActivity(i.activity.id)
+                if (!i.done) say(`+${i.activity.xp} ${i.activity.name}`)
+              }}
+              onOpen={() => {
+                const id = i.activity.id
+                if (id === 'stretch') go('player', 'morning-stretch', 'habit')
+                else if (id === 'meditate' || id === 'pray' || id === 'journal' || id === 'jumprope') go('habit', id)
+                else {
+                  s.toggleActivity(id)
+                  if (!i.done) say(`+${i.activity.xp} ${i.activity.name}`)
+                }
+              }}
+            />
+          ))}
+        </div>
+
+        {(dueToday.length > 0 || quickSave) && (
+          <div className="mt-2 pt-2 border-t border-line/50 space-y-2" data-tour="routines">
+            {dueToday.map((i) =>
+              i.activity.id === 'run' ? (
+                <RunRow key={i.key} item={i} todayKey={todayKey} />
+              ) : (
+                <CallRow key={i.key} item={i} todayKey={todayKey} />
+              ),
+            )}
+            {quickSave && (
+              <div data-tour="save-quick">
+                <SaveRow quick={quickSave} />
+              </div>
+            )}
+          </div>
+        )}
+      </Panel>
+
       {/* Assigned workout → Workout Player */}
       <Panel accent="gold" title="ASSIGNED WORKOUT · +10 / −15">
         {today.isTrainingDay ? (
@@ -53,7 +103,7 @@ export function Today() {
             <div className="flex-1">
               <div className="font-term text-lg leading-tight">{today.session.label}</div>
               <div className="font-term text-dim text-sm">
-                {today.workout?.done ? 'Completed — banked +10' : 'Tap to run the guided session →'}
+                {today.workout?.done ? `Completed — banked +${today.workout.xp ?? 10}` : 'Tap to run the guided session →'}
               </div>
             </div>
           </button>
@@ -62,71 +112,31 @@ export function Today() {
         )}
       </Panel>
 
-      {/* Extra workout — pure upside, right under the assigned workout */}
-      <PixelButton
-        variant="gold"
-        className="w-full"
-        onClick={() => {
-          s.logExtra()
-          useFx.getState().say('+5 Extra workout!')
-        }}
-      >
+      {/* Extra workout — pure upside. Pick a session and run it for +5. */}
+      <PixelButton variant="gold" className="w-full" onClick={() => go('extra')}>
         + LOG EXTRA WORKOUT (+5)
       </PixelButton>
-
-      {/* Daily habits — tap to toggle */}
-      <Panel accent="you" title="DAILY HABITS" dataTour="habits">
-        <div className="space-y-1">
-          {today.daily.map((i) => (
-            <HabitRow
-              key={i.activity.id}
-              item={i}
-              onToggle={() => {
-                s.toggleActivity(i.activity.id)
-                if (!i.done) say(`+${i.activity.xp} ${i.activity.name}`)
-              }}
-            />
-          ))}
-        </div>
-      </Panel>
-
-      {/* Weekly routines — calls & runs pinned to days; pushable with no penalty */}
-      <Panel accent="rival" title="WEEKLY ROUTINES" dataTour="routines">
-        <div className="space-y-2">
-          {today.dayItems.map((i) =>
-            i.activity.id === 'run' ? (
-              <RunRow key={i.key} item={i} todayKey={todayKey} />
-            ) : (
-              <CallRow key={i.key} item={i} todayKey={todayKey} />
-            ),
-          )}
-          {quickSave && (
-            <div className="pt-2 border-t border-line/50" data-tour="save-quick">
-              <SaveRow quick={quickSave} />
-            </div>
-          )}
-        </div>
-        <p className="font-term text-dim text-sm mt-2">
-          3 calls/wk (2 family · 1 friend, +2 each) · 1 mi run on 3 days. Push with no penalty — a pushed
-          mile just adds to your next run.
-          {quickSave && ' Log your savings here too — no need to switch modes.'}
-        </p>
-      </Panel>
     </div>
   )
 }
 
-function HabitRow({ item, onToggle }: { item: DueItem; onToggle: () => void }) {
+// The checkbox toggles done (quick manual override / undo); tapping the label
+// opens the habit's guided session.
+function HabitRow({ item, onToggle, onOpen }: { item: DueItem; onToggle: () => void; onOpen: () => void }) {
   const { activity, done } = item
   return (
-    <button className="w-full flex items-center gap-3 py-1" onClick={onToggle}>
-      <div className="pixbox">{done && <span className="text-you font-pixel text-[10px]">✓</span>}</div>
-      <span className="text-xl">{activity.icon}</span>
-      <span className={`font-term text-lg flex-1 text-left ${done ? 'text-dim line-through' : ''}`}>
-        {activity.name}
-      </span>
+    <div className="w-full flex items-center gap-3 py-1">
+      <button className="pixbox shrink-0" onClick={onToggle} aria-label={`mark ${activity.name} done`}>
+        {done && <span className="text-you font-pixel text-[10px]">✓</span>}
+      </button>
+      <button className="flex items-center gap-3 flex-1 text-left" onClick={onOpen}>
+        <span className="text-xl">{activity.icon}</span>
+        <span className={`font-term text-lg flex-1 ${done ? 'text-dim line-through' : ''}`}>
+          {activity.name}
+        </span>
+      </button>
       <span className={`font-pixel text-[8px] ${done ? 'text-you' : 'text-dim'}`}>+{activity.xp}</span>
-    </button>
+    </div>
   )
 }
 

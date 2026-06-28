@@ -96,6 +96,9 @@ export interface WorkoutItem {
 export interface WorkoutBlock {
   kind: 'warmup' | 'main' | 'skill' | 'cooldown'
   items: WorkoutItem[]
+  /** Circuit blocks (e.g. Mobility A/B) run every item once, then repeat the
+   *  whole block this many rounds. When unset, each item runs its own `sets`. */
+  rounds?: number
 }
 
 export interface Workout {

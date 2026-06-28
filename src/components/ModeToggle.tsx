@@ -2,11 +2,13 @@
 // mode (just under the RIVAL bar). Flipping mode also jumps to that mode's home.
 import { useMode, type AppMode } from '../store/useMode'
 import { useNav, type Screen } from '../store/useNav'
+import { useDrawer } from '../store/useDrawer'
 
 export const MODE_HOME: Record<AppMode, Screen> = { workout: 'arena', savings: 'savings' }
 
 export function switchMode(m: AppMode) {
   useMode.getState().setMode(m)
+  useDrawer.getState().setOpen(false) // never leave the drawer open across modes
   useNav.getState().go(MODE_HOME[m])
 }
 

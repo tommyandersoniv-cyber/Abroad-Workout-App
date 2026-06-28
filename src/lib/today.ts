@@ -1,6 +1,8 @@
 // Builds the "what's due" model shared by the Arena and Today screens.
 import { ACTIVITIES, ACTIVITY_BY_ID } from '../seed/activities'
-import { sessionFor, blockForWeek } from '../seed/program'
+import { blockForWeek } from '../seed/program'
+import { sessionForPlan, DEFAULT_PLAN_ID } from '../seed/plans'
+import type { DaySession } from '../seed/program'
 import { CALL_DAYS, RUN_WEEKDAYS, callPerson, type CallList } from '../seed/social'
 import { occurrenceKey } from '../engine/ledger'
 import { weekIndex, weekday, startOfWeek, startOfDay, dateKey, MS_DAY } from '../engine/time'
@@ -13,6 +15,8 @@ export interface DueItem {
   done: boolean
   value: number
   key: string
+  /** XP actually banked for this occurrence (e.g. +5 for a swapped workout). */
+  xp?: number
 }
 
 /** A day-pinned call or run, with its person and (possibly pushed) display day. */
@@ -34,7 +38,7 @@ export interface TodayModel {
   weekNumber: number
   weekday: Weekday
   block: 'A' | 'B'
-  session: ReturnType<typeof sessionFor>
+  session: DaySession
   isTrainingDay: boolean
   daily: DueItem[]
   workout: DueItem | null
@@ -111,15 +115,16 @@ export function buildTodayModel(
   log: LogEntry[],
   deferrals: Record<string, string> = {},
   runCarry: Record<string, number> = {},
+  planId: string = DEFAULT_PLAN_ID,
 ): TodayModel {
   const wkNumber = weekIndex(startMs, now) + 1
   const wd = weekday(now)
-  const session = sessionFor(wkNumber, wd)
+  const session = sessionForPlan(planId, wkNumber, wd)
 
   const due = (a: Activity): DueItem => {
     const key = occurrenceKey(a, now)
     const entry = findLog(log, a.id, key)
-    return { activity: a, done: !!entry, value: entry?.value ?? 0, key }
+    return { activity: a, done: !!entry, value: entry?.value ?? 0, key, xp: entry?.xp }
   }
 
   const daily = ['stretch', 'jumprope', 'meditate', 'pray', 'journal'].map((id) =>

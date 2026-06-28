@@ -42,7 +42,7 @@ const STEPS: Step[] = [
     screen: 'today',
     target: '[data-tour="habits"]',
     title: 'TODAY — HABITS',
-    body: 'Tap to complete each daily habit (stretch, jump rope, meditate, pray, journal). The Assigned Workout above opens a guided session, and Extra Workouts are +5 each, uncapped — pure upside the rivals never count.',
+    body: 'Tap a habit to run its guided session — a timed meditation, prayer or journal, or the full morning-stretch flow. Tap the checkbox to mark it done directly. The Assigned Workout above opens a guided session, and Extra Workouts are +5 each, uncapped.',
   },
   {
     screen: 'today',
