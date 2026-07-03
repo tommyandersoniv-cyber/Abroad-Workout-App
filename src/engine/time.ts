@@ -25,9 +25,17 @@ export function startOfDay(ms: number): number {
   return d.getTime()
 }
 
+/**
+ * Day-start (local midnight) `n` calendar days after the day containing `ms`.
+ * DST-safe: steps via midday so a 23/25-hour day can never skip or repeat.
+ */
+export function addDays(ms: number, n: number): number {
+  return startOfDay(startOfDay(ms) + n * MS_DAY + MS_DAY / 2)
+}
+
 /** Midnight (local) at the start of the next day — a daily item's deadline. */
 export function endOfDay(ms: number): number {
-  return startOfDay(ms) + MS_DAY
+  return addDays(ms, 1)
 }
 
 /** 0 = Monday … 6 = Sunday. */
@@ -43,7 +51,7 @@ export function startOfWeek(ms: number): number {
 
 /** Start of the next week — a weekly item's deadline. */
 export function endOfWeek(ms: number): number {
-  return startOfWeek(ms) + MS_WEEK
+  return addDays(startOfWeek(ms), 7)
 }
 
 /** Midnight (local) at the first day of the month containing `ms`. */
@@ -58,12 +66,6 @@ export function endOfMonth(ms: number): number {
   return new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime()
 }
 
-/** Number of calendar days in the month containing `ms` (28–31). */
-export function daysInMonth(ms: number): number {
-  const d = new Date(ms)
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
-}
-
 /** Midnight (local) at Jan 1 of the year containing `ms`. */
 export function startOfYear(ms: number): number {
   return new Date(new Date(ms).getFullYear(), 0, 1).getTime()
@@ -72,12 +74,6 @@ export function startOfYear(ms: number): number {
 /** Start of next year — a yearly item's deadline. */
 export function endOfYear(ms: number): number {
   return new Date(new Date(ms).getFullYear() + 1, 0, 1).getTime()
-}
-
-/** Number of days in the year containing `ms` (365 or 366 in a leap year). */
-export function daysInYear(ms: number): number {
-  const y = new Date(ms).getFullYear()
-  return y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0) ? 366 : 365
 }
 
 /** Same local time, `n` calendar months later (day clamps within the month). */
@@ -96,14 +92,3 @@ export function weekIndex(startMs: number, ms: number): number {
   return Math.round((startOfWeek(ms) - startOfWeek(startMs)) / MS_WEEK)
 }
 
-/** Iterate day-start timestamps from `from` (inclusive) to `to` (exclusive of the day after `to`). */
-export function eachDay(fromMs: number, toMs: number): number[] {
-  const out: number[] = []
-  for (let t = startOfDay(fromMs); t <= startOfDay(toMs); t += MS_DAY) out.push(t)
-  return out
-}
-
-/** Clamp helper. */
-export function clamp(n: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, n))
-}

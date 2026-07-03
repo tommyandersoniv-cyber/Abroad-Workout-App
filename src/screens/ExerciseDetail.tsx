@@ -18,7 +18,7 @@ export function ExerciseDetail() {
       <button className="font-pixel text-[8px] text-dim" onClick={() => go('library')}>← LIBRARY</button>
 
       <Panel className="crt">
-        <PixelMedia seed={ex.spriteSeed} label={ex.name} size="lg" onAdd={() => say('Media capture is stubbed in this prototype')} />
+        <PixelMedia seed={ex.spriteSeed} photoUrl={ex.photoUrl} label={ex.name} size="lg" onAdd={() => say('Media capture is stubbed in this prototype')} />
         <h1 className="font-pixel text-[12px] text-you mt-3 leading-relaxed">{ex.name}</h1>
         <div className="font-pixel text-[6px] text-cyan uppercase mt-1">{ex.category}</div>
         <p className="font-term text-lg text-dim mt-2">{ex.description}</p>
@@ -64,7 +64,7 @@ export function ExerciseDetail() {
       {sub && (
         <Panel accent="gold" title="BAR-FREE SWAP">
           <button className="flex items-center gap-2" onClick={() => go('exercise', sub.id)}>
-            <PixelMedia seed={sub.spriteSeed} size="sm" />
+            <PixelMedia seed={sub.spriteSeed} photoUrl={sub.photoUrl} size="sm" />
             <span className="font-term text-lg">{sub.name} →</span>
           </button>
         </Panel>

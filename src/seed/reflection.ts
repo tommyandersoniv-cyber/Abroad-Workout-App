@@ -3,7 +3,7 @@
 // morning intention → daily check-in → Day Reflected summary.
 // ─────────────────────────────────────────────────────────────────────────
 
-import { MS_DAY, dateKey, endOfDay, startOfDay } from '../engine/time'
+import { addDays, dateKey, endOfDay, startOfDay } from '../engine/time'
 
 export interface Dimension {
   id: string
@@ -91,7 +91,7 @@ export const DIMENSION_BY_ID: Record<string, Dimension> = Object.fromEntries(
 /** The dateKeys for the 7 days ending today (inclusive). */
 export function last7Keys(now: number): string[] {
   const keys: string[] = []
-  for (let i = 6; i >= 0; i--) keys.push(dateKey(now - i * MS_DAY))
+  for (let i = 6; i >= 0; i--) keys.push(dateKey(addDays(now, -i)))
   return keys
 }
 
@@ -117,7 +117,7 @@ export function neglectedDimension(byDay: Record<string, string[]>, now: number)
 /** The 7 dateKeys of a week, given its start (Monday) in ms. */
 export function weekKeys(weekStartMs: number): string[] {
   const keys: string[] = []
-  for (let i = 0; i < 7; i++) keys.push(dateKey(weekStartMs + i * MS_DAY))
+  for (let i = 0; i < 7; i++) keys.push(dateKey(addDays(weekStartMs, i)))
   return keys
 }
 
@@ -173,7 +173,7 @@ export function reflectionPlayerScore(byDay: Record<string, string[]>, startMs: 
   if (!startMs) return 0
   const total = DIMENSIONS.length
   let score = 0
-  for (let d = startOfDay(startMs); endOfDay(d) <= now; d += MS_DAY) {
+  for (let d = startOfDay(startMs); endOfDay(d) <= now; d = addDays(d, 1)) {
     const logged = byDay[dateKey(d)]?.length ?? 0
     score += logged * REFLECT_POINT - (total - logged) * REFLECT_POINT
   }
@@ -184,7 +184,7 @@ export function reflectionPlayerScore(byDay: Record<string, string[]>, startMs: 
 export function reflectionMax(startMs: number, now: number): number {
   if (!startMs) return 0
   let days = 0
-  for (let d = startOfDay(startMs); endOfDay(d) <= now; d += MS_DAY) days++
+  for (let d = startOfDay(startMs); endOfDay(d) <= now; d = addDays(d, 1)) days++
   return days * DIMENSIONS.length * REFLECT_POINT
 }
 

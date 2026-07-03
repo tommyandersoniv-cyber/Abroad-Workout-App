@@ -15,8 +15,7 @@
 
 import type { Activity, LogEntry, Weekday } from './types'
 import {
-  MS_DAY,
-  MS_WEEK,
+  addDays,
   dateKey,
   endOfDay,
   endOfWeek,
@@ -53,7 +52,7 @@ export function maxXP(activities: Activity[], startMs: number, nowMs: number): n
     if (a.cadence === 'weekly') {
       // Banked in full once the week has fully elapsed.
       const full = fullOccurrenceXP(a)
-      for (let w = startOfWeek(start); w < nowMs; w += MS_WEEK) {
+      for (let w = startOfWeek(start); w < nowMs; w = addDays(w, 7)) {
         if (endOfWeek(w) <= nowMs) total += full
       }
       continue
@@ -63,7 +62,7 @@ export function maxXP(activities: Activity[], startMs: number, nowMs: number): n
     // (per_mile items like the pinned run count at their target, e.g. 3mi → 15.)
     const days: Weekday[] = a.schedule
     const full = fullOccurrenceXP(a)
-    for (let d = start; d < nowMs; d += MS_DAY) {
+    for (let d = start; d < nowMs; d = addDays(d, 1)) {
       if (!days.includes(weekday(d))) continue
       if (endOfDay(d) <= nowMs) total += full
     }
@@ -134,7 +133,7 @@ export function resolveMisses(
 
     if (a.cadence === 'weekly') {
       // Each completed week between `from` and `now` whose deadline passed.
-      for (let w = startOfWeek(from); w < nowMs; w += MS_WEEK) {
+      for (let w = startOfWeek(from); w < nowMs; w = addDays(w, 7)) {
         const deadline = endOfWeek(w)
         if (deadline > nowMs) break // current week not yet due
         if (deadline <= from) continue // already resolved
@@ -148,7 +147,7 @@ export function resolveMisses(
     }
 
     // daily & scheduled
-    for (let d = startOfDay(from); d < nowMs; d += MS_DAY) {
+    for (let d = startOfDay(from); d < nowMs; d = addDays(d, 1)) {
       if (!a.schedule.includes(weekday(d))) continue
       const deadline = endOfDay(d)
       if (deadline > nowMs) break // today's items aren't missed until day end

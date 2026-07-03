@@ -8,3 +8,6 @@ dist-ssr
 
 # local tool settings
 .claude/settings.local.json
+
+# TypeScript incremental build info
+*.tsbuildinfo

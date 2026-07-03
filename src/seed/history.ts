@@ -10,7 +10,7 @@ import type { LogEntry } from '../engine/types'
 import { ACTIVITIES, ACTIVITY_BY_ID } from './activities'
 import { sessionFor } from './program'
 import { CALL_WEEKDAYS, RUN_WEEKDAYS } from './social'
-import { MS_DAY, dateKey, daysBetween, startOfDay, weekIndex, weekday } from '../engine/time'
+import { addDays, dateKey, daysBetween, startOfDay, weekIndex, weekday } from '../engine/time'
 import { earnFor } from '../engine/ledger'
 
 /** A fresh game starts with no logged history. */
@@ -51,7 +51,7 @@ export function buildDemoLog(startMs: number, nowMs: number): LogEntry[] {
   const todayStart = startOfDay(nowMs)
   const start = startOfDay(startMs)
 
-  for (let d = start; d <= todayStart; d += MS_DAY) {
+  for (let d = start; d <= todayStart; d = addDays(d, 1)) {
     const dayIndex = daysBetween(start, d)
     const key = dateKey(d)
     const wd = weekday(d)

@@ -50,7 +50,8 @@ export function ExtraWorkout() {
 
       <div className="space-y-2">
         {list.map((w) => {
-          const firstSeed = EXERCISE_BY_ID[w.blocks[0]?.items[0]?.exerciseId]?.spriteSeed ?? 1
+          const firstEx = EXERCISE_BY_ID[w.blocks[0]?.items[0]?.exerciseId]
+          const firstSeed = firstEx?.spriteSeed ?? 1
           return (
             <button
               key={w.id}
@@ -58,7 +59,7 @@ export function ExtraWorkout() {
               onClick={() => go('player', w.id, isSwap ? 'swap' : 'extra')}
             >
               <Panel className="flex items-center gap-3 py-2">
-                <PixelMedia seed={firstSeed} size="sm" />
+                <PixelMedia seed={firstSeed} photoUrl={firstEx?.photoUrl} size="sm" />
                 <div className="flex-1 min-w-0">
                   <div className="font-term text-lg leading-tight truncate">
                     {TYPE_ICON[w.type]} {w.name}

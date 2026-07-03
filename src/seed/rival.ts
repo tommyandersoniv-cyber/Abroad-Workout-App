@@ -9,7 +9,6 @@ export const DEFAULT_RIVAL: RivalConfig = {
   name: 'Tommy',
   spriteId: 'tommy',
   personality: 'cocky',
-  difficulty: 'relentless',
 }
 
 interface CopyBank {

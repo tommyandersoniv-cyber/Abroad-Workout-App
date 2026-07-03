@@ -11,6 +11,14 @@
   to = "/index.html"
   status = 200
 
+# Baseline security headers (kept in sync with public/_headers).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
 # Never cache the service worker or the app shell, so updates ship instantly.
 [[headers]]
   for = "/sw.js"

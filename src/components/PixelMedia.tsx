@@ -1,6 +1,7 @@
-// Deterministic placeholder "pixel media" for an exercise — a labelled slot
-// with an add-photo affordance. We never fetch or fabricate real photos (PRD
-// §6.2); the user populates these later. The pattern is seeded so it's stable.
+// "Pixel media" slot for an exercise. Renders a real reference photo when the
+// exercise has one (photoUrl); otherwise falls back to the deterministic
+// placeholder pixel grid with an add-photo affordance. The pattern is seeded
+// so the placeholder is stable per exercise.
 
 function seededGrid(seed: number, n: number): boolean[] {
   const out: boolean[] = []
@@ -17,15 +18,35 @@ export function PixelMedia({
   label,
   size = 'lg',
   onAdd,
+  photoUrl,
 }: {
   seed: number
   label?: string
   size?: 'sm' | 'lg'
   onAdd?: () => void
+  /** Real reference photo path. When provided, replaces the placeholder pixel grid. */
+  photoUrl?: string
 }) {
   const dim = 8
   const grid = seededGrid(seed, dim * dim)
   const cell = size === 'lg' ? 'h-full' : ''
+
+  if (photoUrl) {
+    return (
+      <div
+        className={`relative panel-tight overflow-hidden ${size === 'lg' ? 'aspect-square' : 'w-14 h-14'}`}
+        style={{ background: 'var(--color-night)' }}
+      >
+        <img src={photoUrl} alt={label ?? ''} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+        {label && size === 'lg' && (
+          <div className="absolute bottom-0 inset-x-0 bg-ink/80 font-term text-center text-cyan text-sm py-0.5">
+            {label}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div
       className={`relative panel-tight overflow-hidden ${size === 'lg' ? 'aspect-square' : 'w-14 h-14'}`}

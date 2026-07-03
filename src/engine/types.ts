@@ -81,6 +81,8 @@ export interface Exercise {
   videoRef?: { url: string; startSec?: number }
   /** Deterministic sprite seed so the placeholder pixel-media is stable. */
   spriteSeed: number
+  /** Path to a real reference photo (e.g. /images/exercises/<id>.webp). When absent, the pixel placeholder is shown. */
+  photoUrl?: string
 }
 
 /** One timed/counted item inside a workout block. */
@@ -116,21 +118,14 @@ export interface ProgramTemplate {
   dayMap: Record<Weekday, { A: string | 'REST'; B: string | 'REST' }>
 }
 
-export type Difficulty = 'gentle' | 'balanced' | 'relentless' | 'adaptive'
-
-export const HOLD_FRACTION: Record<Exclude<Difficulty, 'adaptive'>, number> = {
-  gentle: 0.5,
-  balanced: 0.7,
-  relentless: 0.9,
-}
-
 export type Personality = 'cocky' | 'stoic' | 'hypeman' | 'sarcastic'
 
+// Difficulty tiers are retired (README): the benchmarks are fixed at
+// Ymmot 70% / Tommy 90%, so the rival config carries identity only.
 export interface RivalConfig {
   name: string
   spriteId: string
   personality: Personality
-  difficulty: Difficulty
 }
 
 /** A point on the gap-history graph. */

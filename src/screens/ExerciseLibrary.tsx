@@ -59,7 +59,7 @@ export function ExerciseLibrary() {
         {list.map((e) => (
           <button key={e.id} onClick={() => go('exercise', e.id)} className="text-left">
             <Panel className="!p-2 h-full">
-              <PixelMedia seed={e.spriteSeed} size="lg" />
+              <PixelMedia seed={e.spriteSeed} photoUrl={e.photoUrl} size="lg" />
               <div className="font-term text-base mt-1 leading-tight">{e.name}</div>
               <div className="font-pixel text-[6px] text-cyan uppercase mt-1">{e.category}</div>
             </Panel>

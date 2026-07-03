@@ -17,12 +17,14 @@ import {
   PACE_WORD,
   challengeCurrentAmount,
   challengePeriodIndex,
+  challengePeriodStart,
   challengePeriods,
   challengeRivalTotal,
   challengeTotal,
   challengeUnit,
   deadlineFrom,
   daysSaved,
+  paceIntervalStart,
   round2,
   savedSince,
   savedTotal,
@@ -33,7 +35,7 @@ import {
 } from '../savings'
 import { CHALLENGE_BY_ID } from '../seed/challenges'
 import { useGameStore } from './useGameStore'
-import { MS_DAY, MS_WEEK, daysBetween, dateKey, endOfDay, startOfDay, startOfWeek } from '../engine/time'
+import { MS_WEEK, addDays, daysBetween, dateKey, endOfDay, startOfDay, startOfWeek } from '../engine/time'
 
 /** Everything the setup / library hands to the store. */
 export interface GoalInput {
@@ -199,12 +201,19 @@ export const useSavingsStore = create<SavingsState>()(
         if (!goal) return 0
         const now = realNow()
         let amt = 0
+        let periodFrom = startOfDay(now)
         if (goal.mode === 'challenge') {
           const ch = CHALLENGE_BY_ID[goal.challengeId ?? '']
-          if (ch) amt = challengeCurrentAmount(ch, goal.startMs, now)
+          if (ch) {
+            amt = challengeCurrentAmount(ch, goal.startMs, now)
+            periodFrom = challengePeriodStart(ch, goal.startMs, now)
+          }
         } else if (goal.pace && goal.deadlineMs != null) {
           amt = targetCurrentAmount(goal.totalAmount, goal.pace, goal.startMs, goal.deadlineMs, now)
+          periodFrom = paceIntervalStart(goal.pace, goal.startMs, now)
         }
+        // Already banked this period's amount — don't double-log on a re-tap.
+        if (amt > 0 && savedSince(s.contributions, periodFrom, now) >= amt - 0.001) return 0
         if (amt > 0) get().logContribution(amt)
         return amt
       },
@@ -309,7 +318,9 @@ export function selectQuickSave(s: SavingsState): QuickSave | null {
     const amount = challengeCurrentAmount(ch, goal.startMs, now)
     if (amount <= 0) return null // challenge complete
     const daily = ch.cadence === 'daily'
-    const from = daily ? startOfDay(now) : startOfWeek(now)
+    // The done-window is the challenge's own period (goal-start-anchored — two
+    // weeks for biweekly), not the calendar week.
+    const from = challengePeriodStart(ch, goal.startMs, now)
     return {
       amount,
       label: goal.name,
@@ -405,9 +416,9 @@ export function selectSavingsHistory(s: SavingsState, days: number): SavingsHist
   if (!s.configured || !goal) return []
   const now = s.now()
   const out: SavingsHistorySample[] = []
-  const firstDay = startOfDay(now) - (days - 1) * MS_DAY
+  const firstDay = addDays(now, -(days - 1))
   const ch = goal.mode === 'challenge' ? CHALLENGE_BY_ID[goal.challengeId ?? ''] : null
-  for (let d = Math.max(firstDay, startOfDay(goal.startMs)); d <= startOfDay(now); d += MS_DAY) {
+  for (let d = Math.max(firstDay, startOfDay(goal.startMs)); d <= startOfDay(now); d = addDays(d, 1)) {
     const dayEnd = Math.min(now, endOfDay(d))
     const you = savedTotal(s.contributions, dayEnd)
     const ideal =

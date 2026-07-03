@@ -17,7 +17,7 @@ import {
 import { combinedGap, tierForGap, TIER_NAMES, levelFor } from '../engine/levels'
 import { useReflection } from '../store/useReflection'
 import { weekKeys, dayScores, weekNeglected, loggedDayCount, type Dimension } from '../seed/reflection'
-import { MS_DAY } from '../engine/time'
+import { addDays } from '../engine/time'
 
 const TABS: { id: Period; label: string }[] = [
   { id: 'week', label: 'WEEKLY' },
@@ -303,7 +303,7 @@ function ReflectBars({ scores, startMs }: { scores: (number | null)[]; startMs: 
   return (
     <div className="flex items-end justify-between gap-1.5">
       {scores.map((sc, i) => {
-        const wd = new Date(startMs + i * MS_DAY).getDay() // 0=Sun
+        const wd = new Date(addDays(startMs, i)).getDay() // 0=Sun
         const label = WD_INITIALS[i] ?? ''
         return (
           <div key={i} className="flex-1 flex flex-col items-center">

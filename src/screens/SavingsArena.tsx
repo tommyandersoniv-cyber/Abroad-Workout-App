@@ -87,7 +87,8 @@ function Dashboard({ view: v }: { view: SavingsView }) {
   function doLogToday() {
     const amt = logToday()
     if (amt > 0) say(`+${money(amt)} saved!`)
-    else say('Nothing due — goal complete 🏁')
+    else if (v.complete) say('Nothing due — goal complete 🏁')
+    else say(`Already banked ${v.todayTargetLabel.toLowerCase()} ✓`)
   }
   function doAdd() {
     const amt = parseFloat(addStr) || 0

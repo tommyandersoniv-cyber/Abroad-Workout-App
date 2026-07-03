@@ -231,7 +231,7 @@ export function WorkoutPlayer() {
             )}
           </div>
           <button onClick={() => ex && go('exercise', ex.id)} className="w-24">
-            <PixelMedia seed={ex?.spriteSeed ?? 1} size="lg" />
+            <PixelMedia seed={ex?.spriteSeed ?? 1} photoUrl={ex?.photoUrl} size="lg" />
           </button>
         </div>
 
@@ -296,7 +296,7 @@ export function WorkoutPlayer() {
       {next && (
         <Panel className="py-2 flex items-center gap-3">
           <span className="font-pixel text-[7px] text-dim">NEXT</span>
-          <PixelMedia seed={EXERCISE_BY_ID[next.item.exerciseId]?.spriteSeed ?? 2} size="sm" />
+          <PixelMedia seed={EXERCISE_BY_ID[next.item.exerciseId]?.spriteSeed ?? 2} photoUrl={EXERCISE_BY_ID[next.item.exerciseId]?.photoUrl} size="sm" />
           <span className="font-term text-base">{EXERCISE_BY_ID[next.item.exerciseId]?.name}</span>
         </Panel>
       )}

@@ -4,7 +4,7 @@ import { useSavingsStore, selectSavingsView } from '../store/useSavingsStore'
 import { useNav } from '../store/useNav'
 import { savedSince, challengeRivalTotal, targetRivalTotal, money } from '../savings'
 import { CHALLENGE_BY_ID } from '../seed/challenges'
-import { MS_WEEK, startOfWeek, startOfMonth, startOfYear, endOfMonth, endOfYear } from '../engine/time'
+import { startOfWeek, endOfWeek, startOfMonth, startOfYear, endOfMonth, endOfYear } from '../engine/time'
 
 type Period = 'week' | 'month' | 'year'
 const TABS: { id: Period; label: string }[] = [
@@ -17,7 +17,7 @@ function periodStartOf(p: Period, ms: number): number {
   return p === 'week' ? startOfWeek(ms) : p === 'month' ? startOfMonth(ms) : startOfYear(ms)
 }
 function nextBoundary(p: Period, ms: number): number {
-  return p === 'week' ? startOfWeek(ms) + MS_WEEK : p === 'month' ? endOfMonth(ms) : endOfYear(ms)
+  return p === 'week' ? endOfWeek(ms) : p === 'month' ? endOfMonth(ms) : endOfYear(ms)
 }
 
 export function SavingsReports() {

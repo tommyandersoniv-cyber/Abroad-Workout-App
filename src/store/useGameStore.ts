@@ -6,12 +6,10 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Difficulty, LogEntry, RivalConfig } from '../engine'
+import type { LogEntry, RivalConfig } from '../engine'
 import {
-  HOLD_FRACTION,
   earnFor,
   endOfDay,
-  endOfWeek,
   occurrenceKey,
   playerXP as sumXP,
   resolveMisses,
@@ -24,7 +22,7 @@ import { useReflection } from './useReflection'
 import { reflectionPlayerScore, reflectionRivalScore, reflectionMax } from '../seed/reflection'
 import { buildSeedLog, buildDemoLog, computeStartDate, computeDemoStartDate, DEFAULT_RIVAL } from '../seed'
 import { RUN_WEEKDAYS } from '../seed/social'
-import { MS_DAY, MS_WEEK, startOfDay, startOfWeek, weekday, dateKey } from '../engine/time'
+import { MS_DAY, addDays, daysBetween, startOfDay, weekday, dateKey } from '../engine/time'
 
 export interface Settings {
   allowNegative: boolean
@@ -71,7 +69,6 @@ interface GameState {
   completeWorkout: (xp?: number) => void
 
   // config
-  setDifficulty: (d: Difficulty) => void
   setPlan: (planId: string) => void
   setRival: (patch: Partial<RivalConfig>) => void
   setYmmotName: (name: string) => void
@@ -85,27 +82,7 @@ interface GameState {
   loadDemo: () => void
   finishOnboarding: () => void
 
-  // demo controls
-  advanceClock: (ms: number) => void
-  skipToTonight: () => void
-  advanceWeek: () => void
   resetToSeed: () => void
-}
-
-/** Hold fraction for the current difficulty (Adaptive trails your 4-wk avg by 10%). */
-export function holdFractionFor(state: GameState): number {
-  const d = state.rival.difficulty
-  if (d !== 'adaptive') return HOLD_FRACTION[d]
-  // Adaptive: rival = 90% of your trailing 4-week earning pace, expressed as a
-  // fraction of max. Approximate via your realized fraction over the last 4 weeks.
-  const now = realNow(state)
-  const fourWeeksAgo = Math.max(state.startMs, now - 4 * MS_WEEK)
-  const you = sumXP(state.log.filter((e) => e.at <= now && e.at >= fourWeeksAgo))
-  const max = Math.max(
-    1,
-    maxXP(catalog(), Math.max(state.startMs, fourWeeksAgo), now),
-  )
-  return Math.min(0.95, Math.max(0.3, (you / max) * 0.9))
 }
 
 function realNow(state: GameState): number {
@@ -120,10 +97,10 @@ function nextRunDayKey(key: string): string {
   const [y, m, d] = key.split('-').map(Number)
   const base = new Date(y, m - 1, d).getTime()
   for (let i = 1; i <= 14; i++) {
-    const t = base + i * MS_DAY
+    const t = addDays(base, i)
     if (RUN_WEEKDAYS.includes(weekday(t))) return dateKey(t)
   }
-  return dateKey(base + 2 * MS_DAY)
+  return dateKey(addDays(base, 2))
 }
 
 export const useGameStore = create<GameState>()(
@@ -150,6 +127,11 @@ export const useGameStore = create<GameState>()(
 
       init: () => {
         const s = get()
+        // Guard rehydrated storage against corrupt/foreign shapes (mirrors the
+        // savings store's contributions guard).
+        if (!Array.isArray(s.log)) set({ log: [] })
+        if (typeof s.deferrals !== 'object' || s.deferrals === null || Array.isArray(s.deferrals)) set({ deferrals: {} })
+        if (typeof s.runCarry !== 'object' || s.runCarry === null || Array.isArray(s.runCarry)) set({ runCarry: {} })
         if (!s.seeded) {
           const now = Date.now()
           const startMs = computeStartDate(now)
@@ -317,7 +299,7 @@ export const useGameStore = create<GameState>()(
         const a = ACTIVITY_BY_ID.extra
         const now = realNow(s)
         const entry: LogEntry = {
-          id: `log:extra:${now}:${Math.floor(now / 7)}`,
+          id: `log:extra:${now}:${s.log.length}`,
           activityId: 'extra',
           dateKey: occurrenceKey(a, now),
           value: 1,
@@ -328,7 +310,6 @@ export const useGameStore = create<GameState>()(
         set({ log: [...s.log, entry] })
       },
 
-      setDifficulty: (d) => set({ rival: { ...get().rival, difficulty: d } }),
       setPlan: (planId) => set({ planId }),
       setRival: (patch) => set({ rival: { ...get().rival, ...patch } }),
       setYmmotName: (name) => set({ ymmotName: name }),
@@ -342,7 +323,7 @@ export const useGameStore = create<GameState>()(
       markReportsSeen: () => {
         const s = get()
         const now = realNow(s)
-        const days = Math.floor((startOfDay(now) - startOfDay(s.startMs)) / MS_DAY)
+        const days = daysBetween(s.startMs, now)
         set({
           reportsSeen: {
             week: Math.floor(days / 7),
@@ -389,21 +370,6 @@ export const useGameStore = create<GameState>()(
         get().resolve()
       },
 
-      advanceClock: (ms) => {
-        set({ demoOffsetMs: get().demoOffsetMs + ms })
-        get().resolve()
-      },
-      skipToTonight: () => {
-        const s = get()
-        const now = realNow(s)
-        // Jump to 23:30 tonight so the day's items are about to expire.
-        const target = startOfDay(now) + MS_DAY - 30 * 60_000
-        if (target > now) set({ demoOffsetMs: s.demoOffsetMs + (target - now) })
-        get().resolve()
-      },
-      advanceWeek: () => {
-        get().advanceClock(MS_WEEK)
-      },
       resetToSeed: () => {
         const now = Date.now()
         const startMs = computeStartDate(now)
@@ -470,7 +436,6 @@ export function selectPlayerXP(s: GameState): number {
 export function selectRivalXP(s: GameState): number {
   return engineRivalXP(catalog(), s.startMs, s.now(), TOMMY_HOLD) + reflRival(s.now(), TOMMY_HOLD)
 }
-export const selectTommyXP = selectRivalXP
 
 /** Ymmot (70%) — the constant human-consistency benchmark. */
 export function selectYmmotXP(s: GameState): number {
@@ -492,12 +457,12 @@ export interface GapSample {
 export function selectGapHistory(s: GameState, days: number): GapSample[] {
   const now = s.now()
   const out: GapSample[] = []
-  const firstDay = startOfDay(now) - (days - 1) * MS_DAY
-  for (let d = Math.max(firstDay, startOfDay(s.startMs)); d <= startOfDay(now); d += MS_DAY) {
+  const firstDay = addDays(now, -(days - 1))
+  for (let d = Math.max(firstDay, startOfDay(s.startMs)); d <= startOfDay(now); d = addDays(d, 1)) {
     const dayEnd = Math.min(now, endOfDay(d))
     const you = sumXP(s.log.filter((e) => e.at <= dayEnd)) + reflYou(dayEnd)
     out.push({
-      key: new Date(d).toISOString().slice(0, 10),
+      key: dateKey(d),
       you,
       tommy: engineRivalXP(catalog(), s.startMs, dayEnd, TOMMY_HOLD) + reflRival(dayEnd, TOMMY_HOLD),
       ymmot: engineRivalXP(catalog(), s.startMs, dayEnd, YMMOT_HOLD) + reflRival(dayEnd, YMMOT_HOLD),
@@ -540,11 +505,9 @@ export function selectGapTrend(s: GameState): { gap: number; delta7: number } {
 /** Which report cadences have a newly-completed period the user hasn't seen. */
 export function selectPendingReports(s: GameState): { week: boolean; month: boolean; year: boolean; any: boolean } {
   const now = s.now()
-  const days = Math.floor((startOfDay(now) - startOfDay(s.startMs)) / MS_DAY)
+  const days = daysBetween(s.startMs, now)
   const week = Math.floor(days / 7) > s.reportsSeen.week
   const month = Math.floor(days / 30) > s.reportsSeen.month
   const year = Math.floor(days / 365) > s.reportsSeen.year
   return { week, month, year, any: week || month || year }
 }
-
-export { endOfDay, endOfWeek, startOfWeek }

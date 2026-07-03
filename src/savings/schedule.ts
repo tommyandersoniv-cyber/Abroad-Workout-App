@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import type { Challenge, Pace } from './types'
-import { MS_DAY, MS_WEEK, startOfDay, addMonths } from '../engine/time'
+import { addDays, daysBetween, startOfDay, addMonths } from '../engine/time'
 
 // ── Challenge schedules ────────────────────────────────────────────────────
 
@@ -37,18 +37,25 @@ export function challengeTotal(ch: Challenge): number {
   return n * (ch.startAmount ?? 0) + ((ch.stepAmount ?? 0) * n * (n - 1)) / 2
 }
 
-function challengeStepMs(ch: Challenge): number {
-  return ch.cadence === 'daily' ? MS_DAY : ch.cadence === 'biweekly' ? 2 * MS_WEEK : MS_WEEK
+function challengeStepDays(ch: Challenge): number {
+  return ch.cadence === 'daily' ? 1 : ch.cadence === 'biweekly' ? 14 : 7
 }
 
 /**
  * 0-based index of the period the clock is currently in (and equivalently the
  * count of periods whose deadline has already passed). 0 on the first day.
+ * Counted in calendar days so DST-shifted days can't move a boundary.
  */
 export function challengePeriodIndex(ch: Challenge, startMs: number, nowMs: number): number {
   const base = startOfDay(startMs)
   if (nowMs <= base) return 0
-  return Math.floor((nowMs - base) / challengeStepMs(ch))
+  return Math.floor(daysBetween(base, nowMs) / challengeStepDays(ch))
+}
+
+/** Day-start ms of the challenge period the clock is currently in. */
+export function challengePeriodStart(ch: Challenge, startMs: number, nowMs: number): number {
+  const base = startOfDay(startMs)
+  return addDays(base, challengePeriodIndex(ch, startMs, nowMs) * challengeStepDays(ch))
 }
 
 /** The amount due for the CURRENT challenge period (0 once the challenge is over). */
@@ -101,7 +108,15 @@ export function paceIntervalsElapsed(pace: Pace, startMs: number, nowMs: number)
   const base = startOfDay(startMs)
   if (nowMs <= base) return 0
   if (pace === 'monthly') return monthsElapsed(base, nowMs)
-  return Math.floor((nowMs - base) / (PACE_STEP_DAYS[pace] * MS_DAY))
+  return Math.floor(daysBetween(base, nowMs) / PACE_STEP_DAYS[pace])
+}
+
+/** Day-start ms of the pace interval the clock is currently in. */
+export function paceIntervalStart(pace: Pace, startMs: number, nowMs: number): number {
+  const base = startOfDay(startMs)
+  const n = paceIntervalsElapsed(pace, startMs, nowMs)
+  if (pace === 'monthly') return addMonths(base, n)
+  return addDays(base, n * PACE_STEP_DAYS[pace])
 }
 
 /** How many deposits the target plan calls for (pace intervals up to the deadline). */
@@ -144,7 +159,7 @@ export function targetCurrentAmount(
 export function deadlineFrom(startMs: number, num: number, unit: 'weeks' | 'months' | 'years'): number {
   const base = startOfDay(startMs)
   const n = Math.max(1, Math.round(num))
-  if (unit === 'weeks') return base + n * MS_WEEK
+  if (unit === 'weeks') return addDays(base, n * 7)
   if (unit === 'years') return addMonths(base, n * 12)
   return addMonths(base, n)
 }

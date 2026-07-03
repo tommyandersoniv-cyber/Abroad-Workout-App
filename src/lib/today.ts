@@ -1,11 +1,11 @@
 // Builds the "what's due" model shared by the Arena and Today screens.
-import { ACTIVITIES, ACTIVITY_BY_ID } from '../seed/activities'
+import { ACTIVITY_BY_ID } from '../seed/activities'
 import { blockForWeek } from '../seed/program'
 import { sessionForPlan, DEFAULT_PLAN_ID } from '../seed/plans'
 import type { DaySession } from '../seed/program'
 import { CALL_DAYS, RUN_WEEKDAYS, callPerson, type CallList } from '../seed/social'
 import { occurrenceKey } from '../engine/ledger'
-import { weekIndex, weekday, startOfWeek, startOfDay, dateKey, MS_DAY } from '../engine/time'
+import { addDays, weekIndex, weekday, startOfWeek, startOfDay, dateKey } from '../engine/time'
 import type { Activity, LogEntry, Weekday } from '../engine/types'
 
 const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -69,7 +69,7 @@ export function weekDayItems(
   const items: DayItem[] = []
 
   for (const cd of CALL_DAYS) {
-    const dayMs = weekMon + cd.weekday * MS_DAY
+    const dayMs = addDays(weekMon, cd.weekday)
     if (dayMs < startDay) continue
     const key = dateKey(dayMs)
     const comp = `call@${key}`
@@ -88,7 +88,7 @@ export function weekDayItems(
   }
 
   for (const wd of RUN_WEEKDAYS) {
-    const dayMs = weekMon + wd * MS_DAY
+    const dayMs = addDays(weekMon, wd)
     if (dayMs < startDay) continue
     const key = dateKey(dayMs)
     if (deferrals[`run@${key}`]) continue // pushed → its mile carried to a later run day
@@ -153,6 +153,3 @@ export function buildTodayModel(
     todayTotal,
   }
 }
-
-export const ALL_ACTIVITIES = ACTIVITIES
-export { startOfWeek }

@@ -9,7 +9,7 @@
 import type { LogEntry } from '../engine/types'
 import { ACTIVITY_BY_ID } from '../seed/activities'
 import { rivalXP, playerXP } from '../engine/ledger'
-import { MS_DAY, startOfDay, endOfDay, daysBetween } from '../engine/time'
+import { addDays, endOfDay, daysBetween } from '../engine/time'
 
 // The two fixed benchmarks (kept local so this stays a pure lib).
 const TOMMY_HOLD = 0.9
@@ -36,9 +36,9 @@ export interface PeriodWindow {
   complete: boolean
 }
 export function periodWindow(period: Period, startMs: number, now: number, index: number): PeriodWindow {
-  const len = PERIOD_DAYS[period] * MS_DAY
-  const a = startOfDay(startMs) + (index - 1) * len
-  const b = a + len
+  const days = PERIOD_DAYS[period]
+  const a = addDays(startMs, (index - 1) * days)
+  const b = addDays(startMs, index * days)
   return { index, a, b, bClamped: Math.min(b, now), complete: now >= b }
 }
 
@@ -126,7 +126,7 @@ export function rivalWindow(log: LogEntry[], startMs: number, a: number, b: numb
   let daysBeatY = 0
   let daysBeatT = 0
   let days = 0
-  for (let d = a; d < b && d < now; d += MS_DAY) {
+  for (let d = a; d < b && d < now; d = addDays(d, 1)) {
     const de = Math.min(now, endOfDay(d))
     const y = youAt(log, de)
     if (y > ymmotAt(startMs, de)) daysBeatY++
@@ -154,7 +154,7 @@ export interface DayPoint {
 }
 export function series(log: LogEntry[], startMs: number, a: number, b: number, now: number): DayPoint[] {
   const out: DayPoint[] = []
-  for (let d = a; d < b && d <= now; d += MS_DAY) {
+  for (let d = a; d < b && d <= now; d = addDays(d, 1)) {
     const de = Math.min(now, endOfDay(d))
     out.push({ you: youAt(log, de), ymmot: ymmotAt(startMs, de), tommy: tommyAt(startMs, de) })
   }
@@ -215,7 +215,7 @@ export function monthlyTips(me: MeWindow, rv: RivalWindow, names: { ymmot: strin
 /** Net XP for each whole week inside [a, b) — for the yearly "best week". */
 export function weeklyNets(log: LogEntry[], a: number, b: number): number[] {
   const out: number[] = []
-  for (let w = a; w < b; w += 7 * MS_DAY) out.push(meWindow(log, w, w + 7 * MS_DAY).net)
+  for (let w = a; w < b; w = addDays(w, 7)) out.push(meWindow(log, w, addDays(w, 7)).net)
   return out
 }
 
@@ -223,7 +223,7 @@ export function weeklyNets(log: LogEntry[], a: number, b: number): number[] {
 export function longestBeatBothStreak(log: LogEntry[], startMs: number, a: number, b: number, now: number): number {
   let best = 0
   let run = 0
-  for (let d = a; d < b && d < now; d += MS_DAY) {
+  for (let d = a; d < b && d < now; d = addDays(d, 1)) {
     const de = Math.min(now, endOfDay(d))
     const y = youAt(log, de)
     if (y > tommyAt(startMs, de) && y > ymmotAt(startMs, de)) {
