@@ -65,7 +65,7 @@ export function Settings() {
           <div className="flex flex-col items-center">
             <Sprite who="rival" stage={tierForGap(ymmot - you)} px={6} className="anim-bob-fast" />
             <div className="font-term text-ymmot text-sm mt-1">{s.ymmotName}</div>
-            <div className="font-term text-dim text-xs">70%</div>
+            <div className="font-term text-dim text-xs">50%</div>
           </div>
           <div className="flex flex-col items-center">
             <Sprite who="tommy" stage={tierForGap(tommy - you)} px={6} className="anim-bob-fast" flip />
@@ -79,7 +79,7 @@ export function Settings() {
         <NameField value={s.playerName} onChange={(v) => s.setPlayer({ name: v })} color="text-you" hint="the player you control" />
       </Panel>
 
-      <Panel title="YMMOT · 70% (HUMAN-ACHIEVABLE)">
+      <Panel title="YMMOT · 50% (HUMAN-ACHIEVABLE)">
         <NameField value={s.ymmotName} onChange={s.setYmmotName} color="text-ymmot" hint="the constant humanly-achievable benchmark" />
       </Panel>
 
@@ -98,7 +98,7 @@ export function Settings() {
           ))}
         </div>
         <p className="font-term text-dim text-sm mt-3">
-          The two benchmarks are fixed by design — Ymmot always holds 70% of the maximum possible XP and
+          The two benchmarks are fixed by design — Ymmot always holds 50% of the maximum possible XP and
           Tommy always holds 90%. Names &amp; Tommy’s personality are live; sprite uploads are stubbed.
         </p>
       </Panel>

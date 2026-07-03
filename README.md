@@ -140,7 +140,7 @@ It's a contest between three versions of you, all starting at **0 on day 1**:
 | line | who | value |
 |---|---|---|
 | **ME** (green) | the player you control | sum of your logged completions − misses |
-| **Ymmot** (violet) | the humanly-achievable version | a constant **70% of max** |
+| **Ymmot** (violet) | the humanly-achievable version | a constant **50% of max** |
 | **Tommy** (blue, red headband) | the totally locked-in version — your nemesis | a constant **90% of max** |
 
 Tommy is the new blue-shirt/red-headband hero; Ymmot inherits the original ghost
@@ -155,8 +155,8 @@ Only **ME** carries an evolution tier word; Tommy is labelled **LOCKED-IN!** and
 Ymmot **Mr. Consistent**. Names are editable on the RIVALS & NAMES screen.
 
 The evolution **tier is dictated by the gap**, not absolute XP — and reflects both
-rivals: it reads off your gap to the **midpoint** of Ymmot (70%) and Tommy (90%),
-i.e. the 80% line. From there:
+rivals: it reads off your gap to the **midpoint** of Ymmot (50%) and Tommy (90%),
+i.e. the 70% line. From there:
 
 | gap | tier |
 |---|---|
@@ -167,7 +167,7 @@ i.e. the 80% line. From there:
 
 Crossing a tier (up or down) fires an evolution flourish. The rivals carry fixed
 identities rather than tiers — Tommy at a maxed "locked-in" look, Ymmot steady. (The
-old per-rival difficulty tiers are retired — the benchmarks are fixed at 70%/90%.)
+old per-rival difficulty tiers are retired — the benchmarks are fixed at 50%/90%.)
 
 ### Demo time-control
 

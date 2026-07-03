@@ -20,7 +20,7 @@ export const TIER_GAP_EDGES = [-500, -100, 1000] as const
 
 /**
  * Combined standing vs BOTH benchmarks: your gap to their midpoint (the 80%
- * line halfway between Ymmot's 70% and Tommy's 90%). ME's tier is read off this,
+ * line halfway between Ymmot's 50% and Tommy's 90%). ME's tier is read off this,
  * so the tier reflects both rivals at once.
  */
 export function combinedGap(you: number, ymmot: number, tommy: number): number {

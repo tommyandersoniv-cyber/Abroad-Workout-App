@@ -154,7 +154,7 @@ function TopBar() {
   const clock = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 
   // Evolution flourish: fires when ME's TIER changes. The tier reflects BOTH
-  // rivals (gap to the midpoint of Ymmot 70% and Tommy 90%).
+  // rivals (gap to the midpoint of Ymmot 50% and Tommy 90%).
   const prevTier = useRef<number | null>(null)
   const evolve = useFx((f) => f.evolve)
   useEffect(() => {

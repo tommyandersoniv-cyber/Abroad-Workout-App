@@ -121,7 +121,7 @@ export interface ProgramTemplate {
 export type Personality = 'cocky' | 'stoic' | 'hypeman' | 'sarcastic'
 
 // Difficulty tiers are retired (README): the benchmarks are fixed at
-// Ymmot 70% / Tommy 90%, so the rival config carries identity only.
+// Ymmot 50% / Tommy 90%, so the rival config carries identity only.
 export interface RivalConfig {
   name: string
   spriteId: string

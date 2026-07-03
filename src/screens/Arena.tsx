@@ -26,7 +26,7 @@ export function Arena() {
 
   const you = selectPlayerXP(s)
   const tommy = selectRivalXP(s) // 90% locked-in
-  const ymmot = selectYmmotXP(s) // 70% human-achievable
+  const ymmot = selectYmmotXP(s) // 50% human-achievable
   const max = selectMaxXP(s)
   const { delta7 } = selectGapTrend(s)
 
@@ -56,7 +56,7 @@ export function Arena() {
 
   return (
     <div className="p-3 space-y-3 anim-rise">
-      {/* ── Three-way clash: ME vs YMMOT (70%) vs TOMMY (90%) ────────────── */}
+      {/* ── Three-way clash: ME vs YMMOT (50%) vs TOMMY (90%) ────────────── */}
       <Panel className="crt overflow-hidden">
         <div className="text-center font-pixel text-[11px] text-cyan mb-2" data-tour="day">DAY {day}</div>
         <div className="grid grid-cols-3 items-end gap-1 pt-1" data-tour="lineup">
@@ -70,7 +70,7 @@ export function Arena() {
         {/* three cumulative bars on a shared scale */}
         <div className="mt-3 space-y-2">
           <XPBar label={s.playerName} value={you} max={max} color="me" />
-          <XPBar label={`${s.ymmotName} · 70%`} value={ymmot} max={max} color="ymmot" />
+          <XPBar label={`${s.ymmotName} · 50%`} value={ymmot} max={max} color="ymmot" />
           <XPBar label={`${s.rival.name} · 90%`} value={tommy} max={max} color="tommy" align="right" />
         </div>
       </Panel>
@@ -79,7 +79,7 @@ export function Arena() {
       <Panel className="py-4" dataTour="gap">
         <div className="text-center font-term text-dim uppercase tracking-widest text-sm">The Gap</div>
         <div className="grid grid-cols-2 gap-3 mt-2 items-start">
-          <GapColumn name={s.ymmotName} sub="70%" gap={gapY} delta={deltas.ymmot} tone="text-ymmot" />
+          <GapColumn name={s.ymmotName} sub="50%" gap={gapY} delta={deltas.ymmot} tone="text-ymmot" />
           <GapColumn name={s.rival.name} sub="90%" gap={gapT} delta={deltas.tommy} tone="text-tommy" numberClass="text-tommy" />
         </div>
         <div className="mt-3 text-center inline-flex items-center gap-2 font-term text-base w-full justify-center">

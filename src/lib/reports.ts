@@ -13,7 +13,7 @@ import { addDays, endOfDay, daysBetween } from '../engine/time'
 
 // The two fixed benchmarks (kept local so this stays a pure lib).
 const TOMMY_HOLD = 0.9
-const YMMOT_HOLD = 0.7
+const YMMOT_HOLD = 0.5
 const CATALOG = Object.values(ACTIVITY_BY_ID)
 
 export const PERIOD_DAYS = { week: 7, month: 30, year: 365 } as const

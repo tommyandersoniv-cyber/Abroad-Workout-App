@@ -184,7 +184,7 @@ function MonthlyReport({ index }: { index: number }) {
       {!win.complete && <div className="text-center font-pixel text-[7px] text-gold">MONTH IN PROGRESS</div>}
       <Panel accent="gold" title="POINTS GAINED THIS MONTH">
         <GainBar label={s.playerName} value={me.net} max={maxGain} color="var(--color-you)" />
-        <GainBar label={`${s.ymmotName} · 70%`} value={rv.ymmotGain} max={maxGain} color="var(--color-ymmot)" />
+        <GainBar label={`${s.ymmotName} · 50%`} value={rv.ymmotGain} max={maxGain} color="var(--color-ymmot)" />
         <GainBar label={`${s.rival.name} · 90%`} value={rv.tommyGain} max={maxGain} color="var(--color-tommy)" />
       </Panel>
 

@@ -1,4 +1,5 @@
-// First-run sign-up: name + date of birth. Day 1 is anchored to today.
+// First-run sign-up: name only. Day 1 is anchored to today. The name becomes
+// the 90%-locked-in rival's identity (see completeSignup) — you play as ME/YOU.
 import { useState } from 'react'
 import { Sprite } from './Sprite'
 import { PixelButton } from './ui'
@@ -9,13 +10,12 @@ export function Signup() {
   const completeSignup = useGameStore((s) => s.completeSignup)
   const toTutorial = useOnboarding((o) => o.toTutorial)
   const [name, setName] = useState('')
-  const [dob, setDob] = useState('')
 
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   const ready = name.trim().length > 0
 
   function start() {
-    completeSignup(name, dob)
+    completeSignup(name)
     toTutorial()
   }
 
@@ -49,17 +49,9 @@ export function Signup() {
               className="w-full mt-1 bg-night border-3 border-ink px-2 py-2 font-term text-lg"
               style={{ boxShadow: 'inset 0 0 0 2px var(--color-line)' }}
             />
-          </label>
-
-          <label className="block">
-            <span className="font-pixel text-[8px] text-you">DATE OF BIRTH</span>
-            <input
-              type="date"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              className="w-full mt-1 bg-night border-3 border-ink px-2 py-2 font-term text-lg"
-              style={{ boxShadow: 'inset 0 0 0 2px var(--color-line)' }}
-            />
+            <span className="font-term text-dim text-sm mt-1 block">
+              Your locked-in rival is named after you. Its mirror gets your name backwards.
+            </span>
           </label>
 
           <div className="panel-tight p-2">

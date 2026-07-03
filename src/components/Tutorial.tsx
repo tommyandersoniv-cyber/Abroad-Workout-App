@@ -24,7 +24,7 @@ const STEPS: Step[] = [
     screen: 'arena',
     target: '[data-tour="lineup"]',
     title: 'THE ARENA',
-    body: 'Home. Three versions of you climb together: ME (green) is you, Ymmot (violet) is the 70% “humanly achievable” you, and Tommy (blue) is the 90% locked-in you. The bars are total XP — both rivals rise on their own every day.',
+    body: 'Home. Three versions of you climb together: ME (green) is you, Ymmot (violet) is the 50% “humanly achievable” you, and Tommy (blue) is the 90% locked-in you. The bars are total XP — both rivals rise on their own every day.',
   },
   {
     screen: 'arena',

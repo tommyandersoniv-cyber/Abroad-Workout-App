@@ -11,6 +11,19 @@ export const DEFAULT_RIVAL: RivalConfig = {
   personality: 'cocky',
 }
 
+/**
+ * The mirror benchmark's name: the player's typed name, spelled backwards
+ * (title-cased). "Tommy" → "Ymmot". Falls back to "Ymmot" for an empty name.
+ * Some names are near-palindromes (e.g. "Hannah") and won't read as distinct
+ * from the original — that's fine, not worth special-casing.
+ */
+export function reverseName(name: string): string {
+  const trimmed = name.trim()
+  if (!trimmed) return 'Ymmot'
+  const reversed = trimmed.split('').reverse().join('')
+  return reversed.charAt(0).toUpperCase() + reversed.slice(1).toLowerCase()
+}
+
 interface CopyBank {
   /** Said when the rival is comfortably ahead. */
   ahead: string[]

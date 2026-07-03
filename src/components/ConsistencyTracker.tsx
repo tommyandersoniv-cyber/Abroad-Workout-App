@@ -1,5 +1,5 @@
 // Daily consistency tracker — a streak + GitHub-style heatmap of every day you
-// beat BOTH rivals (Ymmot 70% and Tommy 90%). The carrot for the "no finish line".
+// beat BOTH rivals (Ymmot 50% and Tommy 90%). The carrot for the "no finish line".
 import { Panel } from './ui'
 import { computeConsistency, toWeekGrid, type DayMark } from '../lib/consistency'
 import { selectGapHistory, useGameStore } from '../store/useGameStore'

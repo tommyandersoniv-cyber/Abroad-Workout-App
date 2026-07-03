@@ -20,7 +20,7 @@ import { ACTIVITY_BY_ID } from '../seed/activities'
 import { DEFAULT_PLAN_ID } from '../seed/plans'
 import { useReflection } from './useReflection'
 import { reflectionPlayerScore, reflectionRivalScore, reflectionMax } from '../seed/reflection'
-import { buildSeedLog, buildDemoLog, computeStartDate, computeDemoStartDate, DEFAULT_RIVAL } from '../seed'
+import { buildSeedLog, buildDemoLog, computeStartDate, computeDemoStartDate, DEFAULT_RIVAL, reverseName } from '../seed'
 import { RUN_WEEKDAYS } from '../seed/social'
 import { MS_DAY, addDays, daysBetween, startOfDay, weekday, dateKey } from '../engine/time'
 
@@ -36,7 +36,7 @@ interface GameState {
   log: LogEntry[]
   lastResolvedAt: number
   rival: RivalConfig // "Tommy" — the 90% locked-in version
-  ymmotName: string // "Ymmot" — the 70% human-achievable version
+  ymmotName: string // "Ymmot" — the 50% human-achievable version
   settings: Settings
   demoOffsetMs: number
   playerName: string
@@ -50,7 +50,7 @@ interface GameState {
   /** has the player completed the sign-up + tutorial flow? */
   onboarded: boolean
   /** sign-up profile */
-  profile: { name: string; dob: string } | null
+  profile: { name: string } | null
   /** active weekly plan id — decides which workout is scheduled each day */
   planId: string
 
@@ -78,7 +78,7 @@ interface GameState {
   markReportsSeen: () => void
 
   // onboarding
-  completeSignup: (name: string, dob: string) => void
+  completeSignup: (name: string) => void
   loadDemo: () => void
   finishOnboarding: () => void
 
@@ -334,8 +334,15 @@ export const useGameStore = create<GameState>()(
       },
 
       // ── Onboarding ─────────────────────────────────────────────────────
-      completeSignup: (name, dob) => {
-        set({ profile: { name: name.trim() || 'ME', dob }, playerName: name.trim() || 'ME' })
+      // The typed name identifies the 90%-locked-in rival (you're always ME/
+      // YOU on-screen); the mirror benchmark takes that name backwards.
+      completeSignup: (name) => {
+        const trimmed = name.trim() || 'Tommy'
+        set({
+          profile: { name: trimmed },
+          rival: { ...get().rival, name: trimmed },
+          ymmotName: reverseName(trimmed),
+        })
         get().loadDemo() // populate every screen for the tutorial
       },
       loadDemo: () => {
@@ -411,7 +418,7 @@ export const useGameStore = create<GameState>()(
 
 // ── The two fixed benchmark lines (both start at 0 on day 0) ───────────────
 export const TOMMY_HOLD = 0.9 // "Tommy" — the totally locked-in version
-export const YMMOT_HOLD = 0.7 // "Ymmot" — the human-achievable version
+export const YMMOT_HOLD = 0.5 // "Ymmot" — the human-achievable version
 
 // ── Derived selectors (computed from the engine, never stored) ─────────────
 
@@ -437,7 +444,7 @@ export function selectRivalXP(s: GameState): number {
   return engineRivalXP(catalog(), s.startMs, s.now(), TOMMY_HOLD) + reflRival(s.now(), TOMMY_HOLD)
 }
 
-/** Ymmot (70%) — the constant human-consistency benchmark. */
+/** Ymmot (50%) — the constant human-consistency benchmark. */
 export function selectYmmotXP(s: GameState): number {
   return engineRivalXP(catalog(), s.startMs, s.now(), YMMOT_HOLD) + reflRival(s.now(), YMMOT_HOLD)
 }

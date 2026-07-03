@@ -50,7 +50,7 @@ export function Stats() {
       <Panel title="CUMULATIVE LEDGER">
         <div className="grid grid-cols-3 gap-2">
           <Stat label={s.playerName} value={Math.round(you).toLocaleString()} color="text-you" />
-          <Stat label={`${s.ymmotName} 70%`} value={Math.round(ymmot).toLocaleString()} color="text-ymmot" />
+          <Stat label={`${s.ymmotName} 50%`} value={Math.round(ymmot).toLocaleString()} color="text-ymmot" />
           <Stat label={`${s.rival.name} 90%`} value={Math.round(tommy).toLocaleString()} color="text-tommy" />
         </div>
         <div className="mt-2 pt-2 border-t border-line/50 grid grid-cols-2 gap-2 text-center font-term text-base">
