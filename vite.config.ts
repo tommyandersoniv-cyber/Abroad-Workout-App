@@ -10,6 +10,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // We call registerSW() ourselves in main.tsx so we can force an immediate
+      // reload on update instead of leaving an installed PWA stuck on stale JS
+      // until the user happens to fully relaunch it.
+      injectRegister: null,
       includeAssets: ['icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'RIVAL',
