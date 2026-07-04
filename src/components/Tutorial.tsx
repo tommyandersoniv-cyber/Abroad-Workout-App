@@ -24,13 +24,13 @@ const STEPS: Step[] = [
     screen: 'arena',
     target: '[data-tour="lineup"]',
     title: 'THE ARENA',
-    body: 'Home. Three versions of you climb together: ME (green) is you, Ymmot (violet) is the 50% “humanly achievable” you, and Tommy (blue) is the 90% locked-in you. The bars are total XP — both rivals rise on their own every day.',
+    body: 'Home. Three versions of you climb together: ME (green) is you, {ymmot} (violet) is the 50% “humanly achievable” you, and {tommy} (blue) is the 90% locked-in you. The bars are total XP — both rivals rise on their own every day.',
   },
   {
     screen: 'arena',
     target: '[data-tour="gap"]',
     title: 'THE GAP',
-    body: 'Your lead or deficit vs each rival, side by side — Ymmot left, Tommy right. The small number top-right is how much that gap moved today (green = you gained, red = they did). Goal: stay ahead of both.',
+    body: 'Your lead or deficit vs each rival, side by side — {ymmot} left, {tommy} right. The small number top-right is how much that gap moved today (green = you gained, red = they did). Goal: stay ahead of both.',
   },
   {
     screen: 'arena',
@@ -117,12 +117,15 @@ export function Tutorial() {
   const go = useNav((n) => n.go)
   const finishOnboarding = useGameStore((s) => s.finishOnboarding)
   const playerName = useGameStore((s) => s.profile?.name ?? 'YOU')
+  const ymmotName = useGameStore((s) => s.ymmotName)
+  const tommyName = useGameStore((s) => s.rival.name)
   const [ring, setRing] = useState<Ring | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
   const spotRef = useRef<HTMLElement | null>(null)
 
   const cur = STEPS[step]
   const isLast = step === STEPS.length - 1
+  const body = cur.body.split('{ymmot}').join(ymmotName).split('{tommy}').join(tommyName)
 
   function clearSpot() {
     if (spotRef.current) {
@@ -223,7 +226,7 @@ export function Tutorial() {
             <button className="font-pixel text-[7px] text-dim" onClick={done}>SKIP ✕</button>
           </div>
           <p className="font-term text-lg leading-snug">
-            {isLast ? cur.body.replace('Your real journey', `${playerName}, your real journey`) : cur.body}
+            {isLast ? body.replace('Your real journey', `${playerName}, your real journey`) : body}
           </p>
           <div className="flex items-center gap-2 mt-3">
             <PixelButton onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>◀</PixelButton>
