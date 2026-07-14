@@ -64,17 +64,26 @@ export function HabitSession() {
   const [running, setRunning] = useState<boolean>(total != null) // auto-start once we have a duration
   const [done, setDone] = useState(false)
   const tref = useRef<number | null>(null)
+  const endAtRef = useRef<number | null>(null)
 
-  // The countdown.
+  // The countdown. Tracks a wall-clock end time instead of decrementing a
+  // counter each tick, so the display stays correct even if the interval is
+  // throttled or suspended while the screen is locked/backgrounded.
   useEffect(() => {
     if (!running) return
-    tref.current = window.setInterval(() => {
-      setLeft((l) => (l > 1 ? l - 1 : 0))
-    }, 1000)
+    endAtRef.current = Date.now() + left * 1000
+    const sync = () => {
+      if (endAtRef.current == null) return
+      setLeft(Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000)))
+    }
+    tref.current = window.setInterval(sync, 1000)
+    const onVisible = () => { if (document.visibilityState === 'visible') sync() }
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       if (tref.current) clearInterval(tref.current)
+      document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [running])
+  }, [running]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Chime when an auto-starting session (journal / jump rope / prayer) begins.
   useEffect(() => {

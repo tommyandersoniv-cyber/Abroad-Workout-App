@@ -85,24 +85,39 @@ export function WorkoutPlayer() {
   const workSec = stepLeft(step)
   const restSec = step ? step.item.restSec ?? 0 : 0
 
-  // The interval. Reads/writes the store so a remount mid-tick stays consistent.
+  // The interval. Tracks a wall-clock end time (rather than decrementing a
+  // counter each tick) so progress stays correct even if the interval is
+  // throttled or suspended while the screen is locked/backgrounded, and
+  // resyncs immediately when the tab becomes visible again.
   useEffect(() => {
     if (!running || !isTimed) return
-    const id = window.setInterval(() => {
-      const sess = useWorkoutSession.getState()
-      if (sess.left > 1) {
-        sess.set({ left: sess.left - 1 })
+    let endAt = Date.now() + useWorkoutSession.getState().left * 1000
+
+    function sync() {
+      let remaining = Math.round((endAt - Date.now()) / 1000)
+      while (remaining <= 0) {
+        const sess = useWorkoutSession.getState()
+        if (sess.phase === 'work' && restSec > 0) {
+          endAt += restSec * 1000
+          sess.set({ phase: 'rest', left: restSec })
+          remaining = Math.round((endAt - Date.now()) / 1000)
+          continue
+        }
+        // advance to next step — this changes idx/phase/left, which are deps
+        // of this effect, so it will clean up and re-init on its own.
+        advance()
         return
       }
-      // phase boundary
-      if (sess.phase === 'work' && restSec > 0) {
-        sess.set({ phase: 'rest', left: restSec })
-        return
-      }
-      // advance to next step
-      advance()
-    }, 1000)
-    return () => clearInterval(id)
+      useWorkoutSession.getState().set({ left: remaining })
+    }
+
+    const id = window.setInterval(sync, 1000)
+    const onVisible = () => { if (document.visibilityState === 'visible') sync() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [running, isTimed, phase, restSec, idx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A bell tick on each of the final five seconds of the current interval.
