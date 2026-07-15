@@ -4,7 +4,7 @@ declare const process: { env: Record<string, string | undefined> }
 process.env.TZ = 'Europe/Berlin'
 
 import { describe, expect, it } from 'vitest'
-import { MS_DAY, addDays, dateKey, endOfDay, endOfWeek, startOfWeek } from './time'
+import { MS_DAY, addDays, dateKey, endOfDay, endOfWeek, graceDateKey, inGraceWindow, startOfWeek } from './time'
 import { resolveMisses } from './ledger'
 import type { Activity } from './types'
 
@@ -43,6 +43,37 @@ describe('addDays across DST', () => {
     const monday = new Date(2026, 9, 19).getTime() // Mon Oct 19
     expect(startOfWeek(oct(25))).toBe(monday)
     expect(endOfWeek(oct(25))).toBe(oct(26)) // Mon Oct 26 00:00
+  })
+})
+
+describe('inGraceWindow — the 12h grace-window cutoff', () => {
+  it('is true right up to the last millisecond before noon', () => {
+    expect(inGraceWindow(new Date(2026, 6, 15, 11, 59, 59, 999).getTime())).toBe(true)
+  })
+
+  it('is false at exactly noon and after', () => {
+    expect(inGraceWindow(new Date(2026, 6, 15, 12, 0, 0, 0).getTime())).toBe(false)
+    expect(inGraceWindow(new Date(2026, 6, 15, 13, 0, 0, 0).getTime())).toBe(false)
+  })
+
+  it('is true just after midnight', () => {
+    expect(inGraceWindow(new Date(2026, 6, 15, 0, 0, 0, 1).getTime())).toBe(true)
+  })
+})
+
+describe('graceDateKey — yesterday relative to a moment', () => {
+  it("returns the previous calendar day's key regardless of time of day", () => {
+    expect(graceDateKey(new Date(2026, 6, 15, 9, 30).getTime())).toBe('2026-07-14')
+  })
+
+  it('is DST-safe across the fall-back boundary (reuses addDays)', () => {
+    // "Yesterday" from Oct 26 (the day after the 25h fall-back day) is Oct 25.
+    expect(graceDateKey(oct(26) + 9 * 3_600_000)).toBe('2026-10-25')
+  })
+
+  it('is DST-safe across the spring-forward boundary', () => {
+    const mar31 = new Date(2026, 2, 31, 9, 0, 0).getTime()
+    expect(graceDateKey(mar31)).toBe('2026-03-30')
   })
 })
 

@@ -7,8 +7,10 @@ import {
   resolveMisses,
   earnFor,
   fullOccurrenceXP,
+  missEntry,
+  occurrenceKey,
 } from './ledger'
-import { MS_DAY, MS_WEEK, startOfWeek } from './time'
+import { MS_DAY, MS_WEEK, endOfWeek, startOfWeek } from './time'
 import type { Activity, LogEntry } from './types'
 
 // A clean Monday 00:00 local as "day 0" so weeks line up exactly.
@@ -173,6 +175,47 @@ describe('run hard target (1 mile/day × 3 days)', () => {
     const { misses } = resolveMisses(A, [], MON, MON, MON + MS_WEEK)
     const runMiss = misses.find((m) => m.activityId === 'run')
     expect(runMiss?.xp).toBe(-5)
+  })
+})
+
+describe('grace-log support: weekly occurrence keying + missEntry (G8)', () => {
+  const weekly: Activity = {
+    id: 'weigh-in',
+    name: 'Weekly Weigh-in',
+    category: 'weekly',
+    icon: '⚖',
+    xp: 8,
+    unit: 'per_session',
+    cadence: 'weekly',
+    schedule: [],
+    missPenalty: 6,
+    requiresTimer: false,
+    repeatable: false,
+    blurb: '',
+  }
+
+  it("files a weekly activity's occurrence under its week's Monday key, not the raw day", () => {
+    // A Sunday (last day of its week) should still key to that week's Monday.
+    const sunday = MON + 6 * MS_DAY
+    expect(occurrenceKey(weekly, sunday)).toBe(occurrenceKey(weekly, MON))
+    expect(occurrenceKey(weekly, sunday)).not.toBe(isoKey(sunday))
+  })
+
+  it('missEntry builds a restorable miss with the week deadline, matching resolveMisses', () => {
+    const key = occurrenceKey(weekly, MON)
+    const restored = missEntry(weekly, key, endOfWeek(MON))
+    expect(restored).toEqual({
+      id: `miss:weigh-in:${key}`,
+      activityId: 'weigh-in',
+      dateKey: key,
+      value: 0,
+      xp: -weekly.missPenalty,
+      status: 'missed',
+      at: endOfWeek(MON),
+    })
+    // Round-trips through resolveMisses' own miss format exactly.
+    const { misses } = resolveMisses([weekly], [], MON, MON, MON + MS_WEEK)
+    expect(misses).toEqual([restored])
   })
 })
 

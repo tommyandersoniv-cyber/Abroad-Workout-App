@@ -8,8 +8,10 @@ import { money } from './savings'
 import { useFx } from './store/useFx'
 import { useTick } from './hooks/useNow'
 import { tierForGap, combinedGap, TIER_NAMES } from './engine/levels'
+import { inGraceWindow } from './engine/time'
 import { Arena } from './screens/Arena'
 import { Today } from './screens/Today'
+import { Grace } from './screens/Grace'
 import { WorkoutPlayer } from './screens/WorkoutPlayer'
 import { ExtraWorkout } from './screens/ExtraWorkout'
 import { HabitSession } from './screens/HabitSession'
@@ -35,6 +37,7 @@ import { useDrawer } from './store/useDrawer'
 const SCREENS: Record<Screen, ComponentType> = {
   arena: Arena,
   today: Today,
+  grace: Grace,
   player: WorkoutPlayer,
   extra: ExtraWorkout,
   habit: HabitSession,
@@ -267,10 +270,15 @@ const DRAWER_ITEMS: { id: Screen; label: string; icon: string }[] = [
 ]
 
 function Drawer() {
+  useTick(30_000) // re-check the grace-window cutoff periodically while open
   const open = useDrawer((d) => d.open)
   const setOpen = useDrawer((d) => d.setOpen)
   const screen = useNav((n) => n.screen)
   const go = useNav((n) => n.go)
+  const now = useGameStore((s) => s.now())
+  const items = inGraceWindow(now)
+    ? [{ id: 'grace' as const, label: 'GRACE', icon: '⏳' }, ...DRAWER_ITEMS]
+    : DRAWER_ITEMS
 
   return (
     <>
@@ -294,7 +302,7 @@ function Drawer() {
           <button className="font-pixel text-[9px] text-dim" onClick={() => setOpen(false)} aria-label="close menu">✕</button>
         </div>
         <nav className="p-2 space-y-2">
-          {DRAWER_ITEMS.map((it) => (
+          {items.map((it) => (
             <button
               key={it.id}
               className={`btn w-full text-left ${screen === it.id ? 'btn-gold' : ''}`}

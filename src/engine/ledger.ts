@@ -163,7 +163,9 @@ export function resolveMisses(
   return { misses, resolvedAt: nowMs }
 }
 
-function missEntry(a: Activity, key: string, at: number): LogEntry {
+/** Builds a 'missed' LogEntry for one occurrence. Exported so the grace-log
+ *  path can reconstruct a miss that was reversed and needs restoring. */
+export function missEntry(a: Activity, key: string, at: number): LogEntry {
   return {
     id: `miss:${a.id}:${key}`,
     activityId: a.id,

@@ -19,6 +19,7 @@ export type Screen =
   | 'savingsStats'
   | 'savingsLibrary'
   | 'savingsReports'
+  | 'grace'
 
 interface NavState {
   screen: Screen

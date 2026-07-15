@@ -10,6 +10,9 @@ import type { LogEntry, RivalConfig } from '../engine'
 import {
   earnFor,
   endOfDay,
+  endOfWeek,
+  inGraceWindow,
+  missEntry,
   occurrenceKey,
   playerXP as sumXP,
   resolveMisses,
@@ -67,6 +70,13 @@ interface GameState {
   logRun: (miles: number, key?: string) => 'banked' | 'under-target'
   logExtra: () => void
   completeWorkout: (xp?: number) => void
+
+  // 12-hour grace window (local midnight → noon): retroactively log/undo a
+  // habit, workout, or call from YESTERDAY. `key` overrides the computed
+  // occurrence key — required for calls, whose file-key is the original
+  // (possibly pre-push) day, not always yesterday's own date. Run is excluded
+  // (goes through logRun); extras are excluded (bonus/repeatable, never due).
+  graceLog: (activityId: string, key?: string) => void
 
   // config
   setPlan: (planId: string) => void
@@ -308,6 +318,41 @@ export const useGameStore = create<GameState>()(
           at: now,
         }
         set({ log: [...s.log, entry] })
+      },
+
+      graceLog: (activityId, key) => {
+        const s = get()
+        const now = realNow(s)
+        if (!inGraceWindow(now)) return
+        const a = ACTIVITY_BY_ID[activityId]
+        if (!a || a.unit === 'per_mile' || a.repeatable) return // run → logRun; extras never due
+        const occKey = key ?? occurrenceKey(a, addDays(now, -1))
+        const existing = s.log.find(
+          (e) => e.activityId === activityId && e.dateKey === occKey && e.status === 'completed',
+        )
+        const missId = `miss:${activityId}:${occKey}`
+        if (existing) {
+          // Undo: the settle watermark has already passed this occurrence, so
+          // resolve() will never regenerate its miss — restore it here.
+          const hasMiss = s.log.some((e) => e.id === missId)
+          const [y, m, d] = occKey.split('-').map(Number)
+          const dayMs = new Date(y, m - 1, d).getTime()
+          const deadline = a.cadence === 'weekly' ? endOfWeek(dayMs) : endOfDay(dayMs)
+          const restored = hasMiss ? [] : [missEntry(a, occKey, deadline)]
+          set({ log: [...s.log.filter((e) => e.id !== existing.id), ...restored] })
+        } else {
+          const withoutMiss = s.log.filter((e) => e.id !== missId)
+          const entry: LogEntry = {
+            id: `grace:${activityId}:${occKey}:${now}`,
+            activityId,
+            dateKey: occKey,
+            value: 1,
+            xp: a.xp,
+            status: 'completed',
+            at: now,
+          }
+          set({ log: [...withoutMiss, entry] })
+        }
       },
 
       setPlan: (planId) => set({ planId }),

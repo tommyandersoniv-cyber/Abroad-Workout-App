@@ -38,49 +38,61 @@ breaking the `resolveMisses` watermark invariant or double-counting.
    inherits `weekDayItems`'s existing week-boundary behavior (a call pushed
    across a week boundary behaves the same as it already does live today —
    not something this feature fixes or regresses).
-6. Grace section on `Today.tsx`: shown only when `inGraceWindow`, collapsed by
-   default, lists yesterday's daily habits + workout (if it was a training
-   day) + any call/run whose `effectiveDateKey` equals yesterday's key. Same
-   row components/checkbox styling as today's list, including toggle-off,
-   except run (see #3).
+6. **Not a section on Today.tsx** — a new screen (`Grace.tsx`, nav id
+   `'grace'`) reachable from the existing left-side Drawer menu (alongside
+   Library / Catalog / The Eight / Settings), matching the app's existing
+   pattern for secondary screens. The drawer item (and the screen itself)
+   only appears while `inGraceWindow(s.now())` is true — it's absent from the
+   menu entirely after noon, and the Drawer is already workout-mode-only, so
+   no extra mode gating is needed. The screen lists yesterday's daily habits +
+   workout (if it was a training day) + any call/run whose `effectiveDateKey`
+   equals yesterday's key, with the same row components/checkbox styling and
+   toggle-off as today's list, except run (see #3).
 
 ## Acceptance Criteria
-- [ ] G1 — `inGraceWindow(nowMs)` is true for any local time before
+- [x] G1 — `inGraceWindow(nowMs)` is true for any local time before
       12:00:00.000 and false at/after noon; tested at the 11:59:59.999 /
-      12:00:00.000 boundary.
-- [ ] G2 — `graceDateKey(nowMs)` returns the calendar day immediately before
+      12:00:00.000 boundary. ✅ `time.test.ts`.
+- [x] G2 — `graceDateKey(nowMs)` returns the calendar day immediately before
       the day containing `nowMs`, correct across a DST boundary (reuses
       `addDays`, inherits its DST-safety — tested against the existing Oct
-      25/26 2026 Berlin fixtures in `time.test.ts`).
-- [ ] G3 — Grace-completing a daily/workout/call item that has a
+      25/26 2026 Berlin fixtures in `time.test.ts`). ✅ + spring-forward case.
+- [x] G3 — Grace-completing a daily/workout/call item that has a
       `miss:${id}:${key}` entry removes that miss and adds a `completed` entry
       at full positive `xp`; net XP swing for the occurrence is exactly
-      `+xp − (−missPenalty)` (the full round-trip).
-- [ ] G4 — Calling `resolve()` again after a grace-completion does NOT
-      recreate the miss for that occurrence (watermark already passed it).
-- [ ] G5 — Toggling a grace-completion back off removes the completed entry
+      `+xp − (−missPenalty)` (the full round-trip). ✅ `graceLog.test.ts` +
+      verified live (stretch toggled on → ME +10).
+- [x] G4 — Calling `resolve()` again after a grace-completion does NOT
+      recreate the miss for that occurrence (watermark already passed it). ✅
+- [x] G5 — Toggling a grace-completion back off removes the completed entry
       AND restores the original miss entry (same negative xp, same `at` =
       original deadline) — final log state matches pre-grace state exactly.
-- [ ] G6 — On/off/on toggling is idempotent: no duplicate ids, no duplicate
-      miss entries; odd toggle count → completed, even → missed.
-- [ ] G7 — `demoOffsetMs` is respected: grace checks use `realNow(state)`
+      ✅ tested + verified live (toggled off → ME −15, exact original miss).
+- [x] G6 — On/off/on toggling is idempotent: no duplicate ids, no duplicate
+      miss entries; odd toggle count → completed, even → missed. ✅
+- [x] G7 — `demoOffsetMs` is respected: grace checks use `realNow(state)`
       (`Date.now() + demoOffsetMs`), not `Date.now()` directly — tested by
-      driving the demo clock into and out of the grace window.
-- [ ] G8 — A weekly-cadence occurrence files its grace completion under the
+      driving the demo clock into and out of the grace window. ✅ tested +
+      verified live (demoOffsetMs pushed past noon → GRACE item vanished).
+- [x] G8 — A weekly-cadence occurrence files its grace completion under the
       *week's* key (`dateKey(startOfWeek(yesterday))`), not the raw calendar
       day (tested with a synthetic weekly activity — none exist in the
-      current catalog, so this is an engine/store-level test).
-- [ ] G9 — Excused/pushed occurrences: an item deferred away from yesterday
+      current catalog, so this is an engine/store-level test). ✅
+      `ledger.test.ts`.
+- [x] G9 — Excused/pushed occurrences: an item deferred away from yesterday
       does not appear in yesterday's grace list; an item deferred *into*
       yesterday from an earlier day appears once, keyed to its *original*
-      occurrence key, and grace-completing it creates no duplicate entry.
-- [ ] G10 — DST-adjacent day: grace-completing "yesterday" the calendar day
+      occurrence key, and grace-completing it creates no duplicate entry. ✅
+      `lib/today.test.ts` (weekDayItems) + `graceLog.test.ts` (explicit key).
+- [x] G10 — DST-adjacent day: grace-completing "yesterday" the calendar day
       right after a DST transition resolves to the correct calendar date
-      (extends the existing Oct 25/26 Berlin fixtures).
-- [ ] G11 — `Today.tsx` shows the "Yesterday — grace period" section only
-      when `inGraceWindow(s.now())`, and it disappears entirely once local
-      time crosses noon (verified live in the browser).
-- [ ] G12 — `npm test` and `npm run build` both pass with zero regressions.
+      (extends the existing Oct 25/26 Berlin fixtures). ✅
+- [x] G11 — The "GRACE" drawer item / `Grace.tsx` screen appears only when
+      `inGraceWindow(s.now())`, and disappears entirely (menu item gone, not
+      just the screen) once local time crosses noon (verified live in the
+      browser). ✅ verified live in both directions.
+- [x] G12 — `npm test` and `npm run build` both pass with zero regressions. ✅
+      84/84 tests pass (12 new + 72 existing), clean `tsc -b && vite build`.
 
 ## Out of Scope
 - Grace toggle-off for `run` (see design decision #3).
@@ -88,4 +100,7 @@ breaking the `resolveMisses` watermark invariant or double-counting.
 - Retroactively logging anything older than yesterday.
 
 ## Status
-- [ ] Contract proposed — awaiting approval
+- [x] Contract agreed (UI placement moved from Today.tsx to a drawer-menu screen per user feedback)
+- [x] Built
+- [x] Checked against every criterion above
+- [x] Done

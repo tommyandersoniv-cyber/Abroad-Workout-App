@@ -92,3 +92,16 @@ export function weekIndex(startMs: number, ms: number): number {
   return Math.round((startOfWeek(ms) - startOfWeek(startMs)) / MS_WEEK)
 }
 
+/**
+ * True during the 12-hour grace window (local midnight → noon) in which
+ * yesterday's activities can still be retroactively logged.
+ */
+export function inGraceWindow(nowMs: number): boolean {
+  return new Date(nowMs).getHours() < 12
+}
+
+/** Local `YYYY-MM-DD` key of the day before the one containing `nowMs`. DST-safe (via `addDays`). */
+export function graceDateKey(nowMs: number): string {
+  return dateKey(addDays(nowMs, -1))
+}
+
