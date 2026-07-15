@@ -34,6 +34,9 @@ export function WorkoutPlayer() {
   const isExtra = variant === 'extra'
   const isSwap = variant === 'swap'
   const isHabit = variant === 'habit'
+  // Most swaps bank a reduced +5, but a workout can opt into keeping the
+  // assigned workout's full +10 (see `fullCreditSwap` on Workout).
+  const swapXp = workout?.fullCreditSwap ? 10 : 5
 
   // Expand each block into one step per set (or per circuit round), so the
   // player cycles through every set/round before moving on.
@@ -159,10 +162,11 @@ export function WorkoutPlayer() {
       s.logExtra()
       useFx.getState().say('+5 Extra workout!')
     } else if (isSwap) {
-      // Swapped workout — counts as the daily workout but banks only +5.
+      // Swapped workout — counts as the daily workout. Full-credit sessions
+      // (see fullCreditSwap) bank the full +10; everything else banks +5.
       if (!s.isLoggedToday('workout')) {
-        s.completeWorkout(5)
-        useFx.getState().say('SWITCHED WORKOUT · +5')
+        s.completeWorkout(swapXp)
+        useFx.getState().say(`SWITCHED WORKOUT · +${swapXp}`)
       }
     } else if (!s.isLoggedToday('workout')) {
       s.completeWorkout()
@@ -182,7 +186,7 @@ export function WorkoutPlayer() {
   }
 
   if (done) {
-    const xp = isHabit ? 10 : isExtra || isSwap ? 5 : 10
+    const xp = isHabit ? 10 : isExtra ? 5 : isSwap ? swapXp : 10
     return (
       <div className="p-4 space-y-4 anim-rise">
         <Panel accent="gold" className="text-center py-6">
@@ -194,7 +198,7 @@ export function WorkoutPlayer() {
               : isExtra
                 ? `${workout.name} — extra session done.`
                 : isSwap
-                  ? `${workout.name} — swapped in for today.`
+                  ? `${workout.name} — swapped in for today.${workout.fullCreditSwap ? ' Full intensity, full credit.' : ''}`
                   : 'Warmup → Main → Cooldown complete.'}
           </p>
           <div className="font-pixel text-[20px] text-you mt-3 anim-pop">+{xp} XP</div>

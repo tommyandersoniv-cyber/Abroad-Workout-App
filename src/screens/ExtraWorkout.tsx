@@ -32,12 +32,14 @@ export function ExtraWorkout() {
 
   return (
     <div className="p-3 space-y-3 anim-rise">
-      <Panel accent="gold" title={isSwap ? 'SWITCH WORKOUT · +5' : 'EXTRA WORKOUT · +5'}>
+      <Panel accent="gold" title={isSwap ? 'SWITCH WORKOUT' : 'EXTRA WORKOUT · +5'}>
         <p className="font-term text-dim text-base">
           {isSwap ? (
             <>
               Pick a replacement for today’s assigned workout. It still counts as your daily workout —
-              no penalty, streak intact — but banks <span className="text-gold">+5 instead of +10</span>.
+              no penalty, streak intact — but most swaps bank{' '}
+              <span className="text-gold">+5 instead of +10</span>. Full-intensity sessions like Muay
+              Thai keep the <span className="text-gold">full +10</span>.
             </>
           ) : (
             <>
@@ -68,7 +70,9 @@ export function ExtraWorkout() {
                     {w.type} · {moveCount(w)} moves
                   </div>
                 </div>
-                <span className="font-pixel text-[8px] text-gold">+5 ▶</span>
+                <span className="font-pixel text-[8px] text-gold">
+                  +{isSwap && w.fullCreditSwap ? 10 : 5} ▶
+                </span>
               </Panel>
             </button>
           )

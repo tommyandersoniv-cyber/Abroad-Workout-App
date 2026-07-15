@@ -130,6 +130,14 @@ export const EXERCISES: Exercise[] = [
   ex('jump-squats', 'Jump Squats', 'conditioning', 'HIIT — explosive squat.', ['Squat, then jump.', 'Land soft and re-absorb.'], { defaultPrescription: '40s / 20s', videoRef: HIIT_VID }),
   ex('shoulder-taps', 'Shoulder Taps', 'conditioning', 'HIIT — anti-rotation plank.', ['High plank, wide feet.', 'Tap opposite shoulder, stay square.'], { defaultPrescription: '40s / 20s', videoRef: HIIT_VID }),
   ex('mountain-climbers', 'Cross Mountain Climbers', 'conditioning', 'HIIT — knee-to-opposite-elbow.', ['High plank.', 'Drive knee toward the opposite elbow.', 'Alternate fast.'], { defaultPrescription: '40s / 20s', videoRef: HIIT_VID }),
+
+  // ── Muay Thai ───────────────────────────────────────────────────────────
+  ex('shadow-boxing', 'Shadow Boxing — Jab/Cross', 'conditioning', 'Muay Thai — hands combo at range.', ['Stance up, hands guarding the chin.', 'Snap the jab, rotate into the cross.', 'Reset guard between reps.'], { defaultPrescription: '40s / 20s' }),
+  ex('teep', 'Teep (Push Kick)', 'conditioning', 'Muay Thai — the range-control kick.', ['Drive the knee up, then snap the heel through.', 'Push, don’t swing — think "stomp the door".', 'Recover balance, alternate legs.'], { defaultPrescription: '40s / 20s' }),
+  ex('roundhouse-kicks', 'Roundhouse Kicks', 'conditioning', 'Muay Thai — hip-driven power kick.', ['Pivot fully on the plant foot.', 'Swing the shin through the target.', 'Alternate sides each rep.'], { defaultPrescription: '40s / 20s' }),
+  ex('knee-strikes', 'Knee Strikes', 'conditioning', 'Muay Thai — clinch-range knee.', ['Drive the hips forward into the knee.', 'Pull an imaginary clinch down as you strike.', 'Alternate legs.'], { defaultPrescription: '40s / 20s' }),
+  ex('elbow-strikes', 'Elbow Strikes', 'conditioning', 'Muay Thai — close-range elbow combo.', ['Rotate the hips into a horizontal elbow.', 'Chain into a downward elbow.', 'Reset guard, alternate sides.'], { defaultPrescription: '40s / 20s' }),
+  ex('switch-kicks', 'Switch Kicks', 'conditioning', 'Muay Thai — switch-stance power kick.', ['Switch your stance with a small hop.', 'Fire the rear-leg kick immediately after.', 'Keep hands up through the switch.'], { defaultPrescription: '40s / 20s' }),
 ]
 
 export const EXERCISE_BY_ID: Record<string, Exercise> = Object.fromEntries(

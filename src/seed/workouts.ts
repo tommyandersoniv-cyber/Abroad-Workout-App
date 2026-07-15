@@ -175,6 +175,25 @@ export const WORKOUTS: Workout[] = [
     ],
   },
 
+  // ── Muay Thai ─────────────────────────────────────────────────────────────
+  // A full-intensity swap-in: warmup + strike conditioning + cooldown, same
+  // shape as the calisthenics days — so it keeps the full +10 when it
+  // replaces the assigned workout instead of the usual swap-reduced +5
+  // (see `fullCreditSwap`).
+  {
+    id: 'muay-thai',
+    name: 'Muay Thai',
+    type: 'mitt',
+    fullCreditSwap: true,
+    blocks: [
+      { kind: 'warmup', items: WARMUP },
+      { kind: 'main', items: [
+        'shadow-boxing', 'teep', 'roundhouse-kicks', 'knee-strikes', 'elbow-strikes', 'switch-kicks',
+      ].map((exerciseId) => ({ exerciseId, workSec: 40, restSec: 20 })) },
+      { kind: 'cooldown', items: COOLDOWN },
+    ],
+  },
+
   // ── Mobility B + MITT (Saturday combo) ─────────────────────────────────────
   {
     id: 'mobility-b-mitt',

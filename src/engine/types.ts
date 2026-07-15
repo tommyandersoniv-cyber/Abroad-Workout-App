@@ -108,6 +108,10 @@ export interface Workout {
   name: string
   type: 'calisthenics' | 'mobility' | 'hiit' | 'mitt' | 'rest'
   blocks: WorkoutBlock[]
+  /** Swapping this in for the assigned workout still banks the full +10
+   *  (instead of the usual swap-reduced +5) — for sessions demanding enough
+   *  that they shouldn't be penalized relative to the scheduled workout. */
+  fullCreditSwap?: boolean
 }
 
 export type Block = 'A' | 'B'
