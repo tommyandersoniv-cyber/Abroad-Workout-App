@@ -1,6 +1,11 @@
 # Progress
 
-Last updated: 2026-07-03
+Last updated: 2026-07-15
+
+## In Flight
+- **12-hour grace period feature** (2026-07-15) — contract proposed in
+  `contract.md` (G1–G12), awaiting user approval before implementation. Not
+  started: engine helpers, store action, Today.tsx UI, tests all pending.
 
 ## Done
 - Full-app review + remediation (2026-07-03) — shipped, meets contract.md (all 11
