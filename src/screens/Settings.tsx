@@ -1,6 +1,8 @@
 import { Panel, PixelButton } from '../components/ui'
 import { Sprite } from '../components/Sprite'
 import { useGameStore, selectRivalXP, selectPlayerXP, selectYmmotXP } from '../store/useGameStore'
+import { useSavingsStore } from '../store/useSavingsStore'
+import { useReflection } from '../store/useReflection'
 import { useFx } from '../store/useFx'
 import { useTick } from '../hooks/useNow'
 import { tierForGap } from '../engine/levels'
@@ -119,6 +121,8 @@ export function Settings() {
             onClick={() => {
               if (confirm('Reset everything to the seed state? This wipes your progress.')) {
                 s.resetToSeed()
+                useSavingsStore.getState().resetSavings()
+                useReflection.getState().reset()
                 useFx.getState().say('Reset to seed')
               }
             }}

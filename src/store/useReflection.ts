@@ -15,6 +15,8 @@ interface ReflectionState {
   toggle: (day: string, dim: string) => void
   /** The dimensions checked on a given day. */
   forDay: (day: string) => string[]
+  /** Wipe all check-in history (used by the app-wide reset). */
+  reset: () => void
 }
 
 export const useReflection = create<ReflectionState>()(
@@ -35,6 +37,7 @@ export const useReflection = create<ReflectionState>()(
         })
       },
       forDay: (day) => get().byDay[day] ?? [],
+      reset: () => set({ byDay: {}, startMs: 0 }),
     }),
     { name: 'rival-reflection-v1' },
   ),
