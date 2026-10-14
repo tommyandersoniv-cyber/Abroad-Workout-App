@@ -4,10 +4,8 @@ import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App'
 
-// registerType: 'autoUpdate' makes this reload the page the moment a new
-// service worker activates — no stale install waiting for a manual relaunch.
-// Installed PWAs (esp. iOS home-screen) rarely reopen often enough to notice
-// an update on their own, so also poll for one periodically while open.
+// Reload as soon as a new version is deployed, and check hourly while open —
+// home-screen apps rarely relaunch on their own.
 registerSW({
   onRegisteredSW(_url, registration) {
     if (!registration) return

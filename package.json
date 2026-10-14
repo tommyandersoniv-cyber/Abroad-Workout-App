@@ -1,9 +1,9 @@
 {
-  "name": "rival",
+  "name": "full-day",
   "private": true,
-  "version": "0.2.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "RIVAL — a pixel-art discipline game with no finish line. Out-work the 90%-of-perfect ghost of yourself.",
+  "description": "Full Day — build daily habits, gently.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

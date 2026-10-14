@@ -1,180 +1,146 @@
-import { Panel, PixelButton } from '../components/ui'
-import { Sprite } from '../components/Sprite'
-import { useGameStore, selectRivalXP, selectPlayerXP, selectYmmotXP } from '../store/useGameStore'
-import { useSavingsStore } from '../store/useSavingsStore'
-import { useReflection } from '../store/useReflection'
-import { useFx } from '../store/useFx'
-import { useTick } from '../hooks/useNow'
-import { tierForGap } from '../engine/levels'
-import type { Personality } from '../engine/types'
+import { useState } from 'react'
+import { formatTime } from '../lib/date'
+import { normalizeRange, reminders, type RangeId, type Times } from '../lib/habits'
+import { buildIcs } from '../lib/ics'
+import { useStore } from '../store/useStore'
+import { useUi } from '../store/useUi'
+import { BackButton, Card, PillButton, Sheet } from '../components/ui'
 
-const PERSONALITIES: { id: Personality; label: string }[] = [
-  { id: 'cocky', label: 'COCKY' },
-  { id: 'stoic', label: 'STOIC' },
-  { id: 'hypeman', label: 'HYPE-MAN' },
-  { id: 'sarcastic', label: 'SARCASTIC' },
+const RANGE_LABELS: Record<RangeId, string> = { jumprope: 'Jump rope', journal: 'Journal', meditate: 'Meditate' }
+const TIME_LABELS: [keyof Omit<Times, 'sets'>, string][] = [
+  ['prayAM', 'Morning prayer'], ['stretch', 'Stretch'], ['jumprope', 'Jump rope'], ['journal', 'Journal'],
+  ['meditate', 'Meditate'], ['prayPM', 'Evening prayer'], ['reflect', 'Log your day'],
 ]
 
-export function Settings() {
-  useTick(1000)
-  const s = useGameStore()
-  const you = selectPlayerXP(s)
-  const ymmot = selectYmmotXP(s)
-  const tommy = selectRivalXP(s)
+/** Number field that only commits a clean value on blur. */
+function NumberField({ value, onCommit, min = 1, max = 1000, suffix }: {
+  value: number; onCommit: (n: number) => void; min?: number; max?: number; suffix?: string
+}) {
+  const [draft, setDraft] = useState(String(value))
+  const commit = () => {
+    const n = Math.min(max, Math.max(min, Math.round(Number(draft) || value)))
+    setDraft(String(n))
+    onCommit(n)
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <input
+        inputMode="numeric"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        className="w-16 rounded-lg border border-line bg-card px-2 py-1.5 text-center tabular-nums outline-none focus:border-ink"
+      />
+      {suffix && <span className="text-muted text-[14px]">{suffix}</span>}
+    </span>
+  )
+}
 
-  function exportData() {
-    const blob = new Blob([JSON.stringify(useGameStore.getState(), null, 2)], {
-      type: 'application/json',
-    })
-    const url = URL.createObjectURL(blob)
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-3">
+      <span className="text-[16px]">{label}</span>
+      {children}
+    </div>
+  )
+}
+
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
+function downloadIcs(text: string) {
+  const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  if (isIOS()) {
+    // iOS Safari opens text/calendar in its "Add to Calendar" sheet.
+    window.location.href = url
+  } else {
     const a = document.createElement('a')
     a.href = url
-    a.download = 'rival-save.json'
+    a.download = 'full-day-reminders.ics'
     a.click()
-    URL.revokeObjectURL(url)
-    useFx.getState().say('Save exported')
   }
-
-  return (
-    <div className="p-3 space-y-3 anim-rise">
-      <Panel accent="gold" title="SETTINGS">
-        <Toggle
-          label="Sound"
-          sub="Optional retro blips — off by default"
-          on={s.settings.sound}
-          onChange={s.toggleSound}
-        />
-        <div className="h-px bg-line my-2" />
-        <Toggle
-          label="Allow negative XP"
-          sub="Let your line go into debt (default: on). The gap is the real number."
-          on={s.settings.allowNegative}
-          onChange={() => s.setAllowNegative(!s.settings.allowNegative)}
-        />
-      </Panel>
-
-      {/* ── Rivals & names (merged in from the old Rivals page) ──────────────── */}
-      <Panel accent="gold" title="THE THREE LINES" className="crt">
-        <p className="font-term text-dim text-base mb-3">
-          One contest, three versions of you — all start at 0 on day 1.
-        </p>
-        <div className="grid grid-cols-3 items-end gap-1">
-          <div className="flex flex-col items-center">
-            <Sprite who="hero" stage={tierForGap(you - tommy)} px={6} className="anim-bob" />
-            <div className="font-term text-you text-sm mt-1">{s.playerName}</div>
-            <div className="font-term text-dim text-xs">you</div>
-          </div>
-          <div className="flex flex-col items-center">
-            <Sprite who="rival" stage={tierForGap(ymmot - you)} px={6} className="anim-bob-fast" />
-            <div className="font-term text-ymmot text-sm mt-1">{s.ymmotName}</div>
-            <div className="font-term text-dim text-xs">50%</div>
-          </div>
-          <div className="flex flex-col items-center">
-            <Sprite who="tommy" stage={tierForGap(tommy - you)} px={6} className="anim-bob-fast" flip />
-            <div className="font-term text-tommy text-sm mt-1">{s.rival.name}</div>
-            <div className="font-term text-dim text-xs">90%</div>
-          </div>
-        </div>
-      </Panel>
-
-      <Panel accent="you" title="YOU CONTROL">
-        <NameField value={s.playerName} onChange={(v) => s.setPlayer({ name: v })} color="text-you" hint="the player you control" />
-      </Panel>
-
-      <Panel title="YMMOT · 50% (HUMAN-ACHIEVABLE)">
-        <NameField value={s.ymmotName} onChange={s.setYmmotName} color="text-ymmot" hint="the constant humanly-achievable benchmark" />
-      </Panel>
-
-      <Panel title="TOMMY · 90% (LOCKED-IN)">
-        <NameField value={s.rival.name} onChange={(v) => s.setRival({ name: v })} color="text-tommy" hint="the totally locked-in version — your nemesis" />
-        <div className="font-pixel text-[7px] text-dim mt-3 mb-2">TOMMY’S PERSONALITY (drives taunts)</div>
-        <div className="grid grid-cols-2 gap-2">
-          {PERSONALITIES.map((p) => (
-            <button
-              key={p.id}
-              className={`btn ${s.rival.personality === p.id ? 'btn-rival' : ''}`}
-              onClick={() => s.setRival({ personality: p.id })}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <p className="font-term text-dim text-sm mt-3">
-          The two benchmarks are fixed by design — Ymmot always holds 50% of the maximum possible XP and
-          Tommy always holds 90%. Names &amp; Tommy’s personality are live; sprite uploads are stubbed.
-        </p>
-      </Panel>
-
-      <Panel title="DEADLINES">
-        <p className="font-term text-dim text-base">
-          A daily item counts as missed at end of day (local time); weekly items at week’s end. Custom
-          schedule windows &amp; notification editing are stubbed in this prototype.
-        </p>
-      </Panel>
-
-      <Panel title="DATA">
-        <div className="space-y-2">
-          <PixelButton className="w-full" onClick={exportData}>⤓ EXPORT SAVE (JSON)</PixelButton>
-          <PixelButton
-            variant="rival"
-            className="w-full"
-            onClick={() => {
-              if (confirm('Reset everything to the seed state? This wipes your progress.')) {
-                s.resetToSeed()
-                useSavingsStore.getState().resetSavings()
-                useReflection.getState().reset()
-                useFx.getState().say('Reset to seed')
-              }
-            }}
-          >
-            ↺ RESET TO SEED
-          </PixelButton>
-        </div>
-      </Panel>
-
-      <Panel title="ABOUT">
-        <p className="font-term text-dim text-base">
-          RIVAL · v0.2 — a pixel-art discipline game with no finish line. Offline-first PWA, all state
-          local. The rival is the version of you that does 90% of everything, every day, forever.
-        </p>
-      </Panel>
-    </div>
-  )
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
-function Toggle({ label, sub, on, onChange }: { label: string; sub: string; on: boolean; onChange: () => void }) {
-  return (
-    <button className="w-full flex items-center gap-3 text-left" onClick={onChange}>
-      <div className={`pixbox ${on ? '!bg-you-dk' : ''}`}>{on && <span className="font-pixel text-[10px]">✓</span>}</div>
-      <div className="flex-1">
-        <div className="font-pixel text-[9px]">{label}</div>
-        <div className="font-term text-dim text-sm">{sub}</div>
-      </div>
-      <span className={`font-pixel text-[8px] ${on ? 'text-you' : 'text-dim'}`}>{on ? 'ON' : 'OFF'}</span>
-    </button>
-  )
-}
+export function Settings() {
+  const s = useStore((st) => st.settings)
+  const update = useStore((st) => st.updateSettings)
+  const close = useUi((st) => () => st.open(null))
+  const setTime = (k: keyof Omit<Times, 'sets'>, v: string) => v && update({ times: { ...s.times, [k]: v } })
+  const setSet = (i: number, v: string) =>
+    v && update({ times: { ...s.times, sets: s.times.sets.map((x, j) => (j === i ? v : x)) } })
+  const setRange = (id: RangeId, part: 'min' | 'max', n: number) =>
+    update({ ranges: { ...s.ranges, [id]: normalizeRange({ ...s.ranges[id], [part]: n }) } })
 
-function NameField({
-  value,
-  onChange,
-  color,
-  hint,
-}: {
-  value: string
-  onChange: (v: string) => void
-  color: string
-  hint: string
-}) {
   return (
-    <div>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value.slice(0, 12))}
-        className={`bg-night border-3 border-ink px-2 py-2 font-pixel text-[11px] ${color} text-center w-full`}
-        style={{ boxShadow: 'inset 0 0 0 2px var(--color-line)' }}
-      />
-      <div className="font-term text-dim text-sm mt-1">{hint}</div>
-    </div>
+    <Sheet>
+      <BackButton onClick={close} />
+      <h1 className="font-serif text-[30px] font-bold mt-2">Settings</h1>
+
+      <Card className="mt-6 px-4 divide-y divide-line">
+        <Row label="Your name">
+          <input
+            defaultValue={s.name}
+            onBlur={(e) => update({ name: e.target.value.trim() || s.name })}
+            className="w-36 rounded-lg border border-line bg-card px-2 py-1.5 text-right outline-none focus:border-ink"
+          />
+        </Row>
+        <Row label="Pushups per day">
+          <NumberField value={s.pushupTarget} onCommit={(n) => update({ pushupTarget: n })} />
+        </Row>
+        <Row label="Sit-ups per day">
+          <NumberField value={s.situpTarget} onCommit={(n) => update({ situpTarget: n })} />
+        </Row>
+        <Row label="Stretch hold">
+          <NumberField value={s.stretchHoldSec} min={10} max={180} suffix="sec" onCommit={(n) => update({ stretchHoldSec: n })} />
+        </Row>
+      </Card>
+
+      <h2 className="font-serif text-[20px] font-bold mt-8">Timer ranges</h2>
+      <p className="text-muted text-[14px] mt-1">Each session picks a random length in this range.</p>
+      <Card className="mt-3 px-4 divide-y divide-line">
+        {(Object.keys(RANGE_LABELS) as RangeId[]).map((id) => (
+          <Row key={`${id}-${s.ranges[id].min}-${s.ranges[id].max}`} label={RANGE_LABELS[id]}>
+            <span className="flex items-center gap-2">
+              <NumberField value={s.ranges[id].min} max={120} onCommit={(n) => setRange(id, 'min', n)} />
+              <span className="text-muted">to</span>
+              <NumberField value={s.ranges[id].max} max={120} suffix="min" onCommit={(n) => setRange(id, 'max', n)} />
+            </span>
+          </Row>
+        ))}
+      </Card>
+
+      <h2 className="font-serif text-[20px] font-bold mt-8">Reminder times</h2>
+      <Card className="mt-3 px-4 divide-y divide-line">
+        {TIME_LABELS.map(([k, label]) => (
+          <Row key={k} label={label}>
+            <input type="time" value={s.times[k]} onChange={(e) => setTime(k, e.target.value)} className="bg-transparent text-right" />
+          </Row>
+        ))}
+        {s.times.sets.map((t, i) => (
+          <Row key={`set${i}`} label={`Pushups + sit-ups, set ${i + 1}`}>
+            <input type="time" value={t} onChange={(e) => setSet(i, e.target.value)} className="bg-transparent text-right" />
+          </Row>
+        ))}
+      </Card>
+
+      <h2 className="font-serif text-[20px] font-bold mt-8">Calendar reminders</h2>
+      <p className="text-muted text-[14px] mt-1 leading-relaxed">
+        Adds {reminders(s).length} daily repeating events with alerts to your iPhone calendar. If you change times
+        later, delete the old events (or the calendar you added them to) and add them again.
+      </p>
+      <Card className="mt-3 px-4 py-2 divide-y divide-line">
+        {reminders(s).map((r) => (
+          <div key={r.id} className="flex justify-between py-2 text-[14px]">
+            <span>{r.title}</span>
+            <span className="text-muted tabular-nums">{formatTime(r.time)}</span>
+          </div>
+        ))}
+      </Card>
+      <PillButton className="w-full mt-4 mb-10" onClick={() => downloadIcs(buildIcs(s, new Date()))}>
+        Add reminders to Calendar
+      </PillButton>
+    </Sheet>
   )
 }

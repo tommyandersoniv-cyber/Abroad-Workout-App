@@ -16,12 +16,11 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'RIVAL',
-        short_name: 'RIVAL',
-        description:
-          'A pixel-art discipline game with no finish line. Out-work the 90%-of-perfect ghost of yourself.',
-        theme_color: '#1a1033',
-        background_color: '#0d0820',
+        name: 'Full Day',
+        short_name: 'Full Day',
+        description: 'Build daily habits, gently.',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
@@ -33,7 +32,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
       },
     }),
   ],

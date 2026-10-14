@@ -1,61 +1,42 @@
-// Tiny synthesized chime/bell cues for countdown timers. Uses the Web Audio API
-// (no asset files), and respects the global sound setting (♪ toggle). The audio
-// context is created lazily and resumed on first play — which always follows a
-// user gesture (tapping START / opening a session), satisfying autoplay rules.
-
-import { useGameStore } from '../store/useGameStore'
+// Synthesized sounds via Web Audio (no audio files). iOS only allows audio
+// after a tap, so call unlockAudio() from a button's onClick before timing.
 
 let ctx: AudioContext | null = null
 
-function audioCtx(): AudioContext | null {
+export function unlockAudio(): void {
   try {
-    const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!AC) return null
-    if (!ctx) ctx = new AC()
+    const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    ctx ??= new AC()
     if (ctx.state === 'suspended') void ctx.resume()
-    return ctx
+    // A silent blip fully unlocks output on iOS.
+    tone(0, 0.01, 440, 'sine', 0)
   } catch {
-    return null
+    ctx = null
   }
 }
 
-function enabled(): boolean {
-  return !!useGameStore.getState().settings.sound
+function tone(at: number, dur: number, freq: number, type: OscillatorType, vol: number) {
+  if (!ctx) return
+  const t = ctx.currentTime + at
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = type
+  osc.frequency.value = freq
+  gain.gain.setValueAtTime(0.0001, t)
+  gain.gain.exponentialRampToValueAtTime(Math.max(vol, 0.0001), t + 0.01)
+  gain.gain.setValueAtTime(Math.max(vol, 0.0001), t + dur - 0.03)
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+  osc.connect(gain).connect(ctx.destination)
+  osc.start(t)
+  osc.stop(t + dur + 0.02)
 }
 
-// A single bell-like tone with a quick attack and exponential decay.
-function tone(c: AudioContext, freq: number, at: number, dur: number, peak: number) {
-  const osc = c.createOscillator()
-  const gain = c.createGain()
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(freq, at)
-  gain.gain.setValueAtTime(0.0001, at)
-  gain.gain.exponentialRampToValueAtTime(peak, at + 0.012)
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + dur)
-  osc.connect(gain)
-  gain.connect(c.destination)
-  osc.start(at)
-  osc.stop(at + dur + 0.02)
+/** End-of-timer buzzer: three loud pulses. */
+export function buzzer(): void {
+  for (let i = 0; i < 3; i++) tone(i * 0.45, 0.32, 180, 'square', 0.35)
 }
 
-/** A two-note rising chime played when a countdown begins. */
-export function playTimerStart() {
-  if (!enabled()) return
-  const c = audioCtx()
-  if (!c) return
-  const t = c.currentTime
-  tone(c, 660, t, 0.18, 0.16) // E5
-  tone(c, 988, t + 0.11, 0.32, 0.16) // B5
-}
-
-/**
- * A short bell tick for each of the final seconds of a countdown. The last
- * tick (the final second) rings higher and longer so the end is unmistakable.
- */
-export function playTimerTick(final = false) {
-  if (!enabled()) return
-  const c = audioCtx()
-  if (!c) return
-  const t = c.currentTime
-  tone(c, final ? 1319 : 880, t, final ? 0.4 : 0.13, 0.2) // E6 vs A5
+/** Short beep between stretches. */
+export function beep(): void {
+  tone(0, 0.15, 880, 'sine', 0.3)
 }
