@@ -68,6 +68,11 @@ export const STRETCHES: Stretch[] = [
     cues: ['Wide stance or seated straddle.', 'Shift your weight away from the leg being stretched.', 'Keep the stretched leg straight.'],
   },
   {
+    id: 'upper-trap', name: 'Upper Trap Stretch', phase: 'Free the Shoulders', holdSec: 20, sides: 2, photo: 'upper-trap.webp',
+    why: 'Releases neck and shoulder tension from looking down at screens.',
+    cues: ['Sit or stand tall, shoulders relaxed.', 'Gently tilt your ear toward your shoulder.', 'Hold and breathe.'],
+  },
+  {
     id: 'triceps-side', name: 'Overhead Triceps & Side Stretch', phase: 'Free the Shoulders', holdSec: 35, sides: 2, photo: 'triceps-side.jpg',
     why: 'Stretches the back of the arm and the long muscle down your side.',
     cues: ['Stand tall. Raise one arm and drop the hand between your shoulder blades.', 'Use the other hand to gently press that elbow back.', 'Lean slightly away to add a side stretch.'],
@@ -80,11 +85,11 @@ export const STRETCHES: Stretch[] = [
     link: 'https://planfit.ai/en/exercise/cross-body-shoulder-stretch',
   },
   {
-    id: 'clasped-chest', name: 'Clasped-Hands Chest Stretch', phase: 'Free the Shoulders', holdSec: 65, photo: 'chest-opener.webp',
+    id: 'clasped-chest', name: 'Clasped-Hands Chest Stretch', phase: 'Free the Shoulders', holdSec: 45, photo: 'chest-opener.webp',
     why: 'Opens the chest and front of the shoulders, undoing the phone hunch.',
     cues: ['Stand tall, clasp your hands behind your back.', 'Shoulders back and down, squeeze the shoulder blades.', 'Lift your hands slightly away from your back.'],
     link: 'https://medlineplus.gov/ency/imagepages/19483.htm',
-    prompts: [[22, 'Release and rest a few breaths, then clasp again.'], [44, 'One more: release, rest, clasp and lift.']],
+    prompts: [[22, 'Release and rest a breath, then clasp and lift again.']],
   },
   {
     id: 'deep-squat', name: 'Deep Squat Hold', phase: 'Finish Standing', holdSec: 50, photo: 'deep-squat.jpg',
@@ -93,11 +98,11 @@ export const STRETCHES: Stretch[] = [
     link: 'https://www.caliverse.app/exercises/low-squat-hold-1168',
   },
   {
-    id: 'rag-doll', name: 'Rag Doll to Roll-Up', phase: 'Finish Standing', holdSec: 55, photo: 'rag-doll.jpg',
+    id: 'rag-doll', name: 'Rag Doll to Roll-Up', phase: 'Finish Standing', holdSec: 29, photo: 'rag-doll.jpg',
     why: 'Releases the hamstrings and spine, then brings you up slowly to finish.',
     cues: ['Feet hip-width, knees bent, fold forward.', 'Hold opposite elbows and let your head hang.'],
     link: 'https://workoutlabs.com/yoga-poses-guide/rag-doll-uttanasana-variation/',
-    prompts: [[37, 'Let go and roll up slowly, one section of spine at a time, then reach overhead.']],
+    prompts: [[19, 'Let go and roll up slowly, one section of spine at a time, then reach overhead.']],
   },
 ]
 

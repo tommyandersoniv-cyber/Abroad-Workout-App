@@ -160,11 +160,11 @@ describe('copy', () => {
 })
 
 describe('stretch flow', () => {
-  it('runs 13 stretches in exactly 15:00 including 3s get-set gaps', async () => {
+  it('runs 14 stretches in exactly 15:00 including 3s get-set gaps', async () => {
     const { STRETCHES, STRETCH_TOTAL_SEC, PHASES } = await import('./stretch')
-    expect(STRETCHES).toHaveLength(13)
+    expect(STRETCHES).toHaveLength(14)
     expect(PHASES).toEqual(['Wake the Spine', 'Open the Hips', 'Free the Shoulders', 'Finish Standing'])
     expect(STRETCH_TOTAL_SEC).toBe(15 * 60)
-    expect(STRETCHES.filter((s) => s.sides === 2)).toHaveLength(8)
+    expect(STRETCHES.filter((s) => s.sides === 2)).toHaveLength(9)
   })
 })

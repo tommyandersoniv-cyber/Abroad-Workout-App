@@ -240,3 +240,4 @@ Doll 55, with prompts moved to fit. `link` is now optional, since I didn't make
 up reference URLs for the two restored stretches. Live run: 13 stretches, 12
 with photos (Rag Doll still has none), "15:00", 900s saved. 17/17 tests.
 - 2026-10-15: Rag Doll photo added (Tommy's image, rag-doll.jpg). All 13 stretches now have photos.
+- 2026-10-15: Added Upper Trap back (20s per side, v1 photo) at the start of Phase 3. Clasped Chest 65→45 (one rest prompt at 22s) and Rag Doll 55→29 (roll-up at 19s) to stay at exactly 15:00. 14 stretches, verified live.
