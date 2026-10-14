@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { formatTime } from '../lib/date'
 import { normalizeRange, reminders, type RangeId, type Times } from '../lib/habits'
 import { buildIcs } from '../lib/ics'
+import { buzzer, unlockAudio } from '../lib/sound'
 import { useStore } from '../store/useStore'
 import { useUi } from '../store/useUi'
 import { BackButton, Card, PillButton, Sheet } from '../components/ui'
@@ -92,8 +93,13 @@ export function Settings() {
         <Row label="Sit-ups per day">
           <NumberField value={s.situpTarget} onCommit={(n) => update({ situpTarget: n })} />
         </Row>
-        <Row label="Stretch hold">
-          <NumberField value={s.stretchHoldSec} min={10} max={180} suffix="sec" onCommit={(n) => update({ stretchHoldSec: n })} />
+        <Row label="Timer sound">
+          <button
+            onClick={() => { unlockAudio(); setTimeout(buzzer, 150) }}
+            className="rounded-full border border-line px-4 py-1.5 text-[14px] font-medium"
+          >
+            Test sound
+          </button>
         </Row>
       </Card>
 

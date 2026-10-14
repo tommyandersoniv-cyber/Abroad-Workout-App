@@ -158,3 +158,13 @@ describe('calendar file', () => {
 describe('copy', () => {
   it('has at least 15 encouragements', () => expect(ENCOURAGEMENTS.length).toBeGreaterThanOrEqual(15))
 })
+
+describe('stretch flow', () => {
+  it('runs 13 stretches in exactly 15:00 including 3s get-set gaps', async () => {
+    const { STRETCHES, STRETCH_TOTAL_SEC, PHASES } = await import('./stretch')
+    expect(STRETCHES).toHaveLength(13)
+    expect(PHASES).toEqual(['Wake the Spine', 'Open the Hips', 'Free the Shoulders', 'Finish Standing'])
+    expect(STRETCH_TOTAL_SEC).toBe(15 * 60)
+    expect(STRETCHES.filter((s) => s.sides === 2)).toHaveLength(8)
+  })
+})

@@ -189,3 +189,54 @@ Removed the summary card above the Week dimension rows and the tapped-day
 detail under the Month calendar, which is no longer tappable. Month keeps
 the "N good days" line in the calendar card. 16/16 tests, clean build,
 checked at 375px.
+
+## 2026-10-15 fix | second-side stretch timers + sound on iPhone
+
+Lumbar Rotation, Thoracic Rotation and Upper Trap were single holds with a
+"switch" cue. They now run side 1 → 5s "Switch sides" → side 2, a full hold
+each, for 15 holds (10:00 at 40s). The (L)/(R) stretches were already separate.
+No sound: Web Audio on iPhone is muted by the silent switch and gets
+suspended, and a 180 Hz buzzer barely comes through a phone speaker.
+sound.ts now generates WAV files played through <audio> elements: unlocked
+muted on the Start tap, navigator.audioSession='playback' on iOS 17+, and an
+880/660 Hz buzzer of about 2.2s. Added Settings → "Test sound". Checked in
+the browser that every play() resolves. Still needs a check on the real iPhone.
+
+## 2026-10-15 change | new 15-minute stretch flow
+
+Replaced the 12 v1 holds with Tommy's 11-stretch, 4-phase routine (Wake the
+Spine / Open the Hips / Free the Shoulders / Finish Standing), each with its
+own hold time. Six are one-sided and get a full hold per side, so the holds
+total exactly 15:00, plus a 5s get-set step before each hold (~16.5 min overall).
+Mid-hold prompts with a beep: World's Greatest (reach up at 30s), Clasped
+Chest (rest/repeat at 30s and 60s), Rag Doll (roll up at 40s). Kept the
+local photos that match (cat-cow, hip-flexor-l, chest-opener). The others link
+out to Tommy's reference pages ("See picture"); I didn't copy third-party
+images. Removed the "stretch hold" setting (each stretch has its own time)
+and the unused photos. 17/17 tests, clean build, walked through live.
+
+## 2026-10-15 change | stretch photos, 3s gaps, exactly 15:00
+
+Added Tommy's photos for 7 stretches (public/stretch/*.jpg, resized to 1200px,
+precached), and put .jpg in the workbox globs. The Rag Doll PDF says
+"Unauthorized use violators will be prosecuted" and the Netlify site is public,
+so I didn't use it. Tommy then sent a different Rag Doll photo in chat, but it
+never reached disk; still waiting on it as a file. Mistake to avoid: I briefly
+saved the newest file in the images folder (the triceps picture) as
+rag-doll.jpg, caught it and removed it.
+Get-set gap went from 5s to 3s (17 gaps = 51s). Trimmed holds: child-cobra
+120→105, World's Greatest 60→55/side, 90/90 45→42/side, Clasped Chest 90→80,
+Deep Squat 60→55, Rag Doll 60→55, with prompts moved to fit. Holds 849s + gaps
+51s = 900s exactly. Unit-tested, and walked through live to "15:00".
+
+## 2026-10-15 change | hamstring + adductor back, deep squat photo
+
+Added Hamstring and Adductor (30s per side, original v1 photos restored from
+2f51268) to Phase 2 after Kneeling Hip Flexor. Added Tommy's Deep Squat photo.
+To stay at exactly 15:00 (837s of holds + 21 × 3s gaps), retimed: Cat-Cow 55,
+Thread 25/side, Child-Cobra 90, World's Greatest 45/side, 90/90 36/side, Hip
+Flexor 35/side, Triceps 35/side, Cross-Body 25/side, Chest 65, Squat 50, Rag
+Doll 55, with prompts moved to fit. `link` is now optional, since I didn't make
+up reference URLs for the two restored stretches. Live run: 13 stretches, 12
+with photos (Rag Doll still has none), "15:00", 900s saved. 17/17 tests.
+- 2026-10-15: Rag Doll photo added (Tommy's image, rag-doll.jpg). All 13 stretches now have photos.

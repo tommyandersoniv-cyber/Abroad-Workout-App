@@ -5,7 +5,7 @@ import {
   HABITS, counterTarget, counterTotal, doneCount, habitStatus, habitTime, habitsInOrder, upNext,
   type CounterId, type Habit, type RangeId,
 } from '../lib/habits'
-import { STRETCHES } from '../lib/stretch'
+import { STRETCHES, STRETCH_TOTAL_SEC } from '../lib/stretch'
 import { useStore } from '../store/useStore'
 import { useUi } from '../store/useUi'
 import { Card, Icon, StatusMark, ThemeToggle } from '../components/ui'
@@ -84,11 +84,11 @@ function HabitRow({ habit, today, nowMin }: { habit: Habit; today: string; nowMi
       : `${r.min}–${r.max} min · ${formatTime(time)}${secs ? ` · ${formatSecs(secs)} so far` : ''}`
     action = () => open({ kind: 'timer', id: habit.id as RangeId })
   } else {
-    const mins = Math.round((STRETCHES.length * settings.stretchHoldSec) / 60)
+    const mins = Math.round(STRETCH_TOTAL_SEC / 60)
     const secs = log?.secs.stretch ?? 0
     sub = status === 'done'
       ? (secs ? `${formatSecs(secs)} today` : 'Done today')
-      : `${STRETCHES.length} stretches · ~${mins} min · ${formatTime(time)}${secs ? ` · ${formatSecs(secs)} so far` : ''}`
+      : `${STRETCHES.length} stretches · ${mins} min · ${formatTime(time)}${secs ? ` · ${formatSecs(secs)} so far` : ''}`
     action = () => open({ kind: 'stretch' })
   }
 

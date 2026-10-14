@@ -3,18 +3,17 @@ import { useClock } from '../hooks'
 import { dateKey, formatSecs } from '../lib/date'
 import { encouragement } from '../lib/encourage'
 import { beep, buzzer, unlockAudio } from '../lib/sound'
-import { STRETCHES, stretchPhoto } from '../lib/stretch'
+import { PHASES, PREP_SEC, STRETCHES, STRETCH_TOTAL_SEC, stretchPhoto, type Stretch } from '../lib/stretch'
 import { useWakeLock } from '../lib/wakeLock'
 import { useStore } from '../store/useStore'
 import { useUi } from '../store/useUi'
 import { BackButton, Icon, PillButton, Sheet } from '../components/ui'
 
-const PREP = 5 // seconds to get into position before each hold
+const PREP = PREP_SEC
 
-interface Segment { kind: 'prep' | 'hold'; i: number; start: number; len: number }
+interface Segment { kind: 'prep' | 'hold'; i: number; start: number; len: number; side?: 1 | 2 }
 
 export function StretchSession() {
-  const hold = useStore((s) => s.settings.stretchHoldSec)
   const addSecs = useStore((s) => s.addSecs)
   const close = useUi((s) => () => s.open(null))
   const say = useUi((s) => s.say)
@@ -28,39 +27,51 @@ export function StretchSession() {
   const segments = useMemo(() => {
     const out: Segment[] = []
     let t = 0
-    STRETCHES.forEach((_, i) => {
-      out.push({ kind: 'prep', i, start: t, len: PREP }); t += PREP
-      out.push({ kind: 'hold', i, start: t, len: hold }); t += hold
+    STRETCHES.forEach((st, i) => {
+      const sides = st.sides === 2 ? ([1, 2] as const) : ([undefined] as const)
+      for (const side of sides) {
+        out.push({ kind: 'prep', i, start: t, len: PREP, side }); t += PREP
+        out.push({ kind: 'hold', i, start: t, len: st.holdSec, side }); t += st.holdSec
+      }
     })
     return out
-  }, [hold])
-  const total = segments[segments.length - 1].start + segments[segments.length - 1].len
+  }, [])
+  const last = segments[segments.length - 1]
+  const total = last.start + last.len
 
   const t = clock.elapsed
   const segIdx = Math.max(0, segments.findIndex((s) => t < s.start + s.len))
-  const seg = segments[segIdx] ?? segments[segments.length - 1]
-  const stretch = STRETCHES[seg.i]
+  const seg = segments[segIdx] ?? last
   const left = Math.max(0, seg.start + seg.len - t)
+  const intoHold = seg.kind === 'hold' ? t - seg.start : 0
   /** Seconds actually spent holding (prep time not counted). */
-  const heldSecs = segments.filter((s) => s.kind === 'hold').reduce((a, s) => a + Math.max(0, Math.min(s.len, t - s.start)), 0)
+  const heldSecs = segments
+    .filter((s) => s.kind === 'hold')
+    .reduce((a, s) => a + Math.max(0, Math.min(s.len, t - s.start)), 0)
 
-  // Beep at each segment change; buzzer + save at the end.
-  const lastSeg = useRef(-1)
+  const show: Stretch = STRETCHES[phase === 'ready' ? 0 : seg.i]
+  const prompts = show.prompts ?? []
+  const activePrompt = seg.kind === 'hold' ? [...prompts].reverse().find(([at]) => intoHold >= at)?.[1] : undefined
+  const promptIdx = seg.kind === 'hold' ? prompts.filter(([at]) => intoHold >= at).length : 0
+
+  // Beep at each segment change and mid-hold prompt; buzzer + save at the end.
+  const lastMark = useRef('')
   useEffect(() => {
     if (phase !== 'going') return
     if (t >= total && !saved.current) {
       saved.current = true
       clock.pause()
       buzzer()
-      addSecs(day, 'stretch', STRETCHES.length * hold, true)
+      addSecs(day, 'stretch', STRETCH_TOTAL_SEC, true)
       setPhase('finished')
       return
     }
-    if (segIdx !== lastSeg.current) {
-      if (lastSeg.current !== -1) beep()
-      lastSeg.current = segIdx
+    const mark = `${segIdx}:${promptIdx}`
+    if (mark !== lastMark.current) {
+      if (lastMark.current) beep()
+      lastMark.current = mark
     }
-  }, [phase, t, total, segIdx, clock, addSecs, day, hold])
+  }, [phase, t, total, segIdx, promptIdx, clock, addSecs, day])
 
   const leave = () => {
     if (!saved.current && heldSecs >= 1) {
@@ -72,9 +83,8 @@ export function StretchSession() {
   }
 
   const jump = (dir: 1 | -1) => {
-    // Jump to the prep segment of the next/previous stretch.
     const target = Math.min(STRETCHES.length - 1, Math.max(0, seg.i + dir))
-    clock.seek(segments[target * 2].start)
+    clock.seek(segments.find((s) => s.i === target)!.start)
   }
 
   if (phase === 'finished') {
@@ -82,15 +92,22 @@ export function StretchSession() {
       <Sheet>
         <div className="text-center pt-24 anim-pop">
           <div className="font-serif text-[40px] font-bold">Stretched.</div>
-          <p className="text-muted text-[17px] mt-2">All {STRETCHES.length} holds, {formatSecs(STRETCHES.length * hold)}.</p>
+          <p className="text-muted text-[17px] mt-2">All {STRETCHES.length} stretches, {formatSecs(STRETCH_TOTAL_SEC)}.</p>
           <p className="text-[17px] mt-6">{cheer}</p>
-          <PillButton className="w-full mt-12" onClick={close}>Back to today</PillButton>
+          <PillButton className="w-full mt-12" onClick={close}>Back to to-do</PillButton>
         </div>
       </Sheet>
     )
   }
 
-  const show = phase === 'ready' ? STRETCHES[0] : stretch
+  const photo = stretchPhoto(show)
+  const phaseNo = PHASES.indexOf(show.phase) + 1
+  let label = ''
+  if (phase === 'going') {
+    if (seg.kind === 'prep') label = seg.side === 2 ? 'Switch sides' : 'Get into position'
+    else if (seg.side) label = `Side ${seg.side} of 2`
+  }
+
   return (
     <Sheet>
       <div className="flex items-center justify-between">
@@ -103,22 +120,45 @@ export function StretchSession() {
         <div className="h-full bg-accent transition-all" style={{ width: `${(t / total) * 100}%` }} />
       </div>
 
-      <div className="mt-5 rounded-2xl overflow-hidden bg-white border border-line aspect-[4/3]">
-        <img src={stretchPhoto(show.id)} alt={show.name} className="size-full object-contain p-2" />
+      <div className="mt-4 text-[12px] tracking-[0.14em] uppercase text-muted">
+        Phase {phaseNo} · {show.phase}
       </div>
+
+      {photo ? (
+        <div className="mt-3 rounded-2xl overflow-hidden bg-white border border-line aspect-[4/3] relative">
+          <img src={photo} alt={show.name} className="size-full object-contain p-2" />
+          {show.link && (
+            <a href={show.link} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 rounded-full bg-ink/80 text-on-ink text-[12px] px-3 py-1">
+              More ↗
+            </a>
+          )}
+        </div>
+      ) : show.link ? (
+        <a
+          href={show.link}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 flex items-center justify-between rounded-2xl border border-line bg-surface px-5 py-4"
+        >
+          <span className="text-[15px] font-medium">See picture</span>
+          <span className="text-muted text-[13px]">opens in Safari ↗</span>
+        </a>
+      ) : null}
 
       <div className="mt-5 flex items-end justify-between gap-4">
         <div className="min-w-0">
-          {phase === 'going' && seg.kind === 'prep' && (
-            <div className="text-[12px] tracking-[0.14em] uppercase text-accent">Get into position</div>
-          )}
+          {label && <div className="text-[12px] tracking-[0.14em] uppercase text-accent">{label}</div>}
           <h1 className="font-serif text-[28px] font-bold leading-tight">{show.name}</h1>
-          <p className="text-muted text-[15px] mt-1">{show.desc}</p>
+          <p className="text-muted text-[15px] mt-1">{show.why}</p>
         </div>
         <div className="font-serif text-[44px] font-bold tabular-nums leading-none shrink-0">
-          {phase === 'ready' ? formatSecs(hold) : formatSecs(Math.ceil(left))}
+          {phase === 'ready' ? formatSecs(show.holdSec) : formatSecs(Math.ceil(left))}
         </div>
       </div>
+
+      {activePrompt && (
+        <div className="mt-4 rounded-xl bg-accent text-on-ink px-4 py-3 text-[15px] font-medium anim-pop">{activePrompt}</div>
+      )}
 
       <ol className="mt-4 space-y-1.5 text-[15px]">
         {show.cues.map((c, i) => (
@@ -130,7 +170,8 @@ export function StretchSession() {
         {phase === 'ready' ? (
           <>
             <p className="text-muted text-[14px] mb-4">
-              {STRETCHES.length} holds × {hold}s, with {PREP}s to switch between each. A beep marks every change.
+              {STRETCHES.length} stretches in {PHASES.length} phases, {formatSecs(STRETCH_TOTAL_SEC)} total.
+              One-sided stretches time each side. You get {PREP}s to get set before each hold, and a beep marks every change.
             </p>
             <PillButton className="w-full" onClick={() => { unlockAudio(); clock.start(); setPhase('going') }}>
               Start stretching

@@ -48,7 +48,6 @@ export interface Settings {
   situpTarget: number
   /** Minutes. */
   ranges: Record<RangeId, Range>
-  stretchHoldSec: number
   times: Times
   theme: 'light' | 'dark'
 }
@@ -62,7 +61,6 @@ export const DEFAULT_SETTINGS: Settings = {
     journal: { min: 2, max: 5 },
     meditate: { min: 5, max: 10 },
   },
-  stretchHoldSec: 40,
   times: {
     prayAM: '07:30',
     stretch: '07:40',
