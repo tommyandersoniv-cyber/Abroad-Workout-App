@@ -10,7 +10,7 @@ Last updated: 2026-10-14
 - Old app preserved at tag `rival-v1`.
 
 ## In Flight
-- Commit v2, then merge to main → Netlify deploys. Waiting on Tommy's go-ahead.
+- Committed (2f51268) and merged to main locally. **Push to GitHub failed (auth)**, so Netlify has not deployed yet.
 
 ## Blocked
 - Nothing.
