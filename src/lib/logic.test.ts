@@ -93,7 +93,11 @@ describe('habits', () => {
     expect(normalizeRange({ min: 0, max: 0 })).toEqual({ min: 1, max: 1 })
   })
   it('Today order follows the reminder schedule', () => {
-    expect(habitsInOrder(S.times).map((h) => h.id)).toEqual([
+    expect(habitsInOrder(S).map((h) => h.id)).toEqual([
+      'meditateAM', 'prayAM', 'teethAM', 'stretch', 'jumprope', 'pushups', 'situps', 'journal', 'shower',
+    ])
+    // Switched-off habits come back in schedule order when re-enabled.
+    expect(habitsInOrder({ ...S, off: [] }).map((h) => h.id)).toEqual([
       'meditateAM', 'prayAM', 'teethAM', 'stretch', 'jumprope', 'pushups', 'situps', 'journal', 'meditate', 'prayPM', 'shower', 'teethPM',
     ])
   })
@@ -108,10 +112,11 @@ describe('habits', () => {
 describe('stats', () => {
   const now = new Date(2026, 9, 14)
   const wk = weekKeys(now)
-  it('good habit days need 7 of 12; good reflection days need 5 of 8', () => {
-    expect(isGoodHabitDay(dayWith(6), S)).toBe(false)
-    expect(isGoodHabitDay(dayWith(7), S)).toBe(true)
-    expect(doneCount(fullDay(), S)).toBe(12)
+  it('good habit days need 5 of the active habits; good reflection days need 5 of 8', () => {
+    expect(isGoodHabitDay(dayWith(4), S)).toBe(false)
+    expect(isGoodHabitDay(dayWith(5), S)).toBe(true)
+    expect(doneCount(fullDay(), S)).toBe(9) // 3 habits are off by default
+    expect(doneCount(fullDay(), { ...S, off: [] })).toBe(12)
     expect(isGoodReflectionDay(['body', 'mind', 'heart', 'soul'])).toBe(false)
     expect(isGoodReflectionDay(['body', 'mind', 'heart', 'soul', 'give'])).toBe(true)
   })
@@ -139,7 +144,8 @@ describe('calendar file', () => {
   const events = ics.split('BEGIN:VEVENT').slice(1)
   it('has one daily repeating event with an alarm per reminder', () => {
     expect(events).toHaveLength(reminders(S).length)
-    expect(events).toHaveLength(15)
+    expect(events).toHaveLength(12) // switched-off habits get no reminder
+    expect(ics).not.toContain('Evening prayer')
     for (const e of events) {
       expect(e).toContain('RRULE:FREQ=DAILY')
       expect(e).toContain('BEGIN:VALARM')
@@ -148,11 +154,14 @@ describe('calendar file', () => {
   })
   it('uses floating local times and CRLF line endings', () => {
     expect(ics).toContain('DTSTART:20261014T071500\r\n')
-    expect(ics).toContain('DTSTART:20261014T220000\r\n')
     expect(ics).toContain('DTSTART:20261014T214000\r\n')
     expect(ics).not.toMatch(/DTSTART[^\r]*Z/)
     expect(ics).not.toContain('TZID')
     expect(ics.split('\r\n').every((l) => new TextEncoder().encode(l).length <= 75)).toBe(true)
+  })
+  it('a set reminder drops a switched-off counter', () => {
+    const r = reminders({ ...S, off: [...S.off, 'situps'] }).find((x) => x.id === 'set1')!
+    expect(r.title).toBe('25 pushups')
   })
   it('reflects edited times and targets', () => {
     const edited = buildIcs({ ...S, pushupTarget: 80, times: { ...S.times, meditateAM: '06:15' } }, new Date(2026, 9, 14))

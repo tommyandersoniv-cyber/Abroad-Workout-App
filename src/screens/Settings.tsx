@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { formatTime } from '../lib/date'
-import { normalizeRange, reminders, type RangeId, type Times } from '../lib/habits'
+import { HABITS, normalizeRange, reminders, type HabitId, type RangeId, type Times } from '../lib/habits'
 import { buildIcs } from '../lib/ics'
 import { buzzer, unlockAudio } from '../lib/sound'
 import { useStore } from '../store/useStore'
@@ -48,6 +48,20 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
+function Switch({ on, label, onChange }: { on: boolean; label: string; onChange: () => void }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      onClick={onChange}
+      className={`relative h-7 w-12 rounded-full transition ${on ? 'bg-accent' : 'bg-empty border border-line'}`}
+    >
+      <span className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-all ${on ? 'left-[22px]' : 'left-0.5'}`} />
+    </button>
+  )
+}
+
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
 function downloadIcs(text: string) {
@@ -72,6 +86,8 @@ export function Settings() {
   const setTime = (k: keyof Omit<Times, 'sets'>, v: string) => v && update({ times: { ...s.times, [k]: v } })
   const setSet = (i: number, v: string) =>
     v && update({ times: { ...s.times, sets: s.times.sets.map((x, j) => (j === i ? v : x)) } })
+  const toggleHabit = (id: HabitId) =>
+    update({ off: s.off.includes(id) ? s.off.filter((x) => x !== id) : [...s.off, id] })
   const setRange = (id: RangeId, part: 'min' | 'max', n: number) =>
     update({ ranges: { ...s.ranges, [id]: normalizeRange({ ...s.ranges[id], [part]: n }) } })
 
@@ -102,6 +118,19 @@ export function Settings() {
             Test sound
           </button>
         </Row>
+      </Card>
+
+      <h2 className="font-serif text-[20px] font-bold mt-8">Daily habits</h2>
+      <p className="text-muted text-[14px] mt-1">Start small. Switch more on when you’re ready for them.</p>
+      <Card className="mt-3 px-4 divide-y divide-line">
+        {HABITS.map((h) => {
+          const on = !s.off.includes(h.id)
+          return (
+            <Row key={h.id} label={h.name}>
+              <Switch on={on} label={h.name} onChange={() => toggleHabit(h.id)} />
+            </Row>
+          )
+        })}
       </Card>
 
       <h2 className="font-serif text-[20px] font-bold mt-8">Timer ranges</h2>

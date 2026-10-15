@@ -263,3 +263,17 @@ migrate() that moves saved settings still on the old defaults (prayer/teeth
 times, 5–10 meditation). Checked live with v1 data, and a morning meditation
 run saved under meditateAM only. 18/18 tests, clean build. The .ics now has
 15 events.
+
+## 2026-10-15 change | start small (9 habits), habit switches, "Already done"
+
+Tommy wants to start smaller: Evening meditation, Evening prayer and Brush
+teeth (night) are now off by default via `settings.off`. They can be switched
+back on under Settings → Daily habits (switches for all 12). Off habits are
+hidden from To Do, get no reminders, and don't count toward done/good-day.
+The set reminders drop an off counter from their title. Good habit day is back
+to 5+ (GOOD_HABIT_DAY = 5) of the active habits. Saved settings without `off`
+get the default from the merge.
+Timer and stretch start screens have a grey underlined "Already done" link,
+which opens a "Did you really do it? … Don't cheat yourself" confirm with
+Yes / Not yet. Yes marks the habit done with 0 seconds ("Done today"). Counters
+and taps were already manual. Verified live, 19/19 tests, clean build.

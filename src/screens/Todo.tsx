@@ -2,7 +2,7 @@ import { useNow } from '../hooks'
 import { dateKey, formatSecs, formatTime, longDate, timeToMin } from '../lib/date'
 import { encouragement } from '../lib/encourage'
 import {
-  HABITS, counterTarget, counterTotal, doneCount, habitStatus, habitTime, habitsInOrder, upNext,
+  activeHabits, counterTarget, counterTotal, doneCount, habitStatus, habitTime, habitsInOrder, upNext,
   rangeFor, type CounterId, type Habit, type TapId, type TimerId,
 } from '../lib/habits'
 import { STRETCHES, STRETCH_TOTAL_SEC } from '../lib/stretch'
@@ -28,7 +28,7 @@ export function Todo() {
           <div className="text-muted text-[15px]">{longDate(now)}</div>
           <h1 className="font-serif text-[32px] leading-tight font-bold mt-1">To do</h1>
           <div className="text-muted text-[15px] mt-1">
-            {done === 0 ? 'Any one of these is a great start.' : `${done} of ${HABITS.length} done today`}
+            {done === 0 ? 'Any one of these is a great start.' : `${done} of ${activeHabits(settings).length} done today`}
           </div>
         </div>
         <div className="flex gap-1 -mr-2 text-muted">
@@ -48,7 +48,7 @@ export function Todo() {
       )}
 
       <div className="space-y-3 mt-4">
-        {habitsInOrder(settings.times).map((h) => (
+        {habitsInOrder(settings).map((h) => (
           <HabitRow key={h.id} habit={h} today={today} nowMin={nowMin} />
         ))}
       </div>

@@ -8,6 +8,7 @@ import { useWakeLock } from '../lib/wakeLock'
 import { useStore } from '../store/useStore'
 import { useUi } from '../store/useUi'
 import { BackButton, PillButton, Sheet } from '../components/ui'
+import { AlreadyDone } from '../components/AlreadyDone'
 
 const DOING: Record<TimerId, string> = { jumprope: 'jump rope', journal: 'journaling', meditate: 'meditation', meditateAM: 'meditation' }
 
@@ -109,9 +110,20 @@ export function TimerSession({ id }: { id: TimerId }) {
 
       <div className="mt-8 pb-8 space-y-3">
         {phase === 'ready' && (
-          <PillButton className="w-full" onClick={() => { unlockAudio(); clock.start(); setPhase('timing') }}>
-            Start
-          </PillButton>
+          <>
+            <PillButton className="w-full" onClick={() => { unlockAudio(); clock.start(); setPhase('timing') }}>
+              Start
+            </PillButton>
+            <AlreadyDone
+              name={habit.name}
+              onConfirm={() => {
+                saved.current = true
+                addSecs(day, id, 0, true)
+                say(`${habit.name} checked off. ${encouragement()}`)
+                close()
+              }}
+            />
+          </>
         )}
         {phase === 'timing' && (
           <PillButton variant="ghost" className="w-full" onClick={() => (clock.running ? clock.pause() : clock.start())}>

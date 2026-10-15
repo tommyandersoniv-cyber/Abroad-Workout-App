@@ -63,6 +63,8 @@ export interface Settings {
   ranges: Record<RangeId, Range>
   times: Times
   theme: 'light' | 'dark'
+  /** Habits switched off in Settings (hidden, no reminders, not counted). */
+  off: HabitId[]
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -89,6 +91,8 @@ export const DEFAULT_SETTINGS: Settings = {
     reflect: '21:40',
   },
   theme: 'light',
+  // Start small: the evening pair-halves can be switched on in Settings later.
+  off: ['meditate', 'prayPM', 'teethPM'],
 }
 
 export interface DayLog {
@@ -126,8 +130,13 @@ export function habitStatus(h: HabitId, log: DayLog | undefined, s: Settings): S
   return 'none'
 }
 
+/** The habits currently switched on. */
+export function activeHabits(s: Settings): Habit[] {
+  return HABITS.filter((h) => !s.off.includes(h.id))
+}
+
 export function doneCount(log: DayLog | undefined, s: Settings): number {
-  return HABITS.filter((h) => habitStatus(h.id, log, s) === 'done').length
+  return activeHabits(s).filter((h) => habitStatus(h.id, log, s) === 'done').length
 }
 
 /** First reminder time for each habit — the Today list is sorted by this. */
@@ -136,8 +145,8 @@ export function habitTime(h: HabitId, t: Times): string {
   return t[h]
 }
 
-export function habitsInOrder(t: Times): Habit[] {
-  return [...HABITS].sort((a, b) => timeToMin(habitTime(a.id, t)) - timeToMin(habitTime(b.id, t)))
+export function habitsInOrder(s: Settings): Habit[] {
+  return activeHabits(s).sort((a, b) => timeToMin(habitTime(a.id, s.times)) - timeToMin(habitTime(b.id, s.times)))
 }
 
 export interface Reminder {
@@ -181,7 +190,16 @@ export function reminders(s: Settings): Reminder[] {
     { id: 'teethPM', time: t.teethPM, title: 'Brush teeth', habits: ['teethPM'] },
     { id: 'reflect', time: t.reflect, title: 'Log your day', habits: [] },
   ]
-  return list.sort((a, b) => timeToMin(a.time) - timeToMin(b.time))
+  return list
+    .map((r) => ({ ...r, habits: r.habits.filter((h) => !s.off.includes(h)) }))
+    .filter((r) => r.id === 'reflect' || r.habits.length > 0)
+    .map((r) => (r.id.startsWith('set') ? { ...r, title: setTitle(r.habits, pu, su) } : r))
+    .sort((a, b) => timeToMin(a.time) - timeToMin(b.time))
+}
+
+function setTitle(habits: HabitId[], pu: number, su: number): string {
+  const parts = [habits.includes('pushups') && `${pu} pushups`, habits.includes('situps') && `${su} sit-ups`]
+  return parts.filter(Boolean).join(' + ')
 }
 
 /**

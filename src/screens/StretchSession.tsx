@@ -8,6 +8,7 @@ import { useWakeLock } from '../lib/wakeLock'
 import { useStore } from '../store/useStore'
 import { useUi } from '../store/useUi'
 import { BackButton, Icon, PillButton, Sheet } from '../components/ui'
+import { AlreadyDone } from '../components/AlreadyDone'
 
 const PREP = PREP_SEC
 
@@ -176,6 +177,15 @@ export function StretchSession() {
             <PillButton className="w-full" onClick={() => { unlockAudio(); clock.start(); setPhase('going') }}>
               Start stretching
             </PillButton>
+            <AlreadyDone
+              name="Stretching"
+              onConfirm={() => {
+                saved.current = true
+                addSecs(day, 'stretch', 0, true)
+                say(`Stretching checked off. ${encouragement()}`)
+                close()
+              }}
+            />
           </>
         ) : (
           <div className="flex gap-3">

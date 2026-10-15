@@ -1,5 +1,5 @@
 // Weekly/monthly roll-ups: the 4-days-per-dimension weekly goal and good
-// days (≥7 habits, ≥5 of 8 dimensions). Everything is scoped to the keys passed in.
+// days (≥5 habits, ≥5 of 8 dimensions). Everything is scoped to the keys passed in.
 
 import type { DayKey } from './date'
 import type { DimensionId } from './dimensions'
@@ -7,7 +7,7 @@ import { doneCount, type DayLog, type Settings } from './habits'
 
 export const WEEKLY_GOAL = 4
 /** A good habit day: at least this many habits fully done. */
-export const GOOD_HABIT_DAY = 7
+export const GOOD_HABIT_DAY = 5
 /** A good reflection day: at least this many of the 8 dimensions lived. */
 export const GOOD_REFLECTION_DAY = 5
 
