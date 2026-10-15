@@ -6,9 +6,11 @@ import { useUi } from '../store/useUi'
 import { BackButton, Card, PillButton, Sheet } from '../components/ui'
 import { PhotoButton } from '../components/PhotoButton'
 
+const NONE: never[] = []
+
 export function Reflect() {
   const [day] = useState(() => dateKey(new Date()))
-  const lived = useStore((s) => s.reflections[day] ?? [])
+  const lived = useStore((s) => s.reflections[day] ?? NONE)
   const toggle = useStore((s) => s.toggleDimension)
   const close = useUi((s) => () => s.open(null))
   const [step, setStep] = useState<'checkin' | 'summary'>(lived.length ? 'summary' : 'checkin')
@@ -18,18 +20,21 @@ export function Reflect() {
     const pct = Math.round((lived.length / DIMENSIONS.length) * 100)
     return (
       <Sheet>
-        <BackButton onClick={() => setStep('checkin')} label="Edit" />
+        <BackButton onClick={close} />
         <h1 className="font-serif text-[30px] font-bold mt-3">Your day in progress</h1>
+        <p className="text-muted text-[15px] mt-2">Tap a dimension to update it. You can keep changing today’s reflection until midnight.</p>
         <div className="grid grid-cols-2 gap-3 mt-7">
           {DIMENSIONS.map((d) => {
             const on = lived.includes(d.id)
             return (
-              <div
+              <button
                 key={d.id}
-                className={`rounded-2xl border py-5 text-center text-[17px] ${on ? 'bg-ink text-on-ink border-ink' : 'border-line text-muted'}`}
+                aria-pressed={on}
+                onClick={() => toggle(day, d.id)}
+                className={`rounded-2xl border py-5 text-center text-[17px] transition active:scale-[0.97] ${on ? 'bg-ink text-on-ink border-ink' : 'border-line text-muted'}`}
               >
                 {d.name}
-              </div>
+              </button>
             )
           })}
         </div>
@@ -55,7 +60,8 @@ export function Reflect() {
             </div>
           </>
         )}
-        <PillButton className="w-full mt-8 mb-8" onClick={close}>Done</PillButton>
+        <PillButton variant="ghost" className="w-full mt-8" onClick={() => setStep('checkin')}>Update details &amp; photos</PillButton>
+        <PillButton className="w-full mt-3 mb-8" onClick={close}>Done for now</PillButton>
       </Sheet>
     )
   }

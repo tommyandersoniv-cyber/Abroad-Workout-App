@@ -277,3 +277,14 @@ Timer and stretch start screens have a grey underlined "Already done" link,
 which opens a "Did you really do it? … Don't cheat yourself" confirm with
 Yes / Not yet. Yes marks the habit done with 0 seconds ("Done today"). Counters
 and taps were already manual. Verified live, 19/19 tests, clean build.
+
+## 2026-10-15 change | reflection stays editable all day
+
+Nothing locked the reflection, but once logged it only opened to a read-only
+summary with a small "Edit" link, so it looked final. Now the summary's 8
+tiles are tap-to-toggle buttons that save instantly, with the line "You can
+keep changing today's reflection until midnight". There are "Update details
+& photos" (back to the cards) and "Done for now" buttons, and the Today
+button reads "Update Your Day" once logged. The reflection is keyed to the
+local date, so it resets at midnight. Also used a stable empty-array fallback
+in the selector. Verified live, 19/19 tests.

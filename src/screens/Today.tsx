@@ -39,7 +39,7 @@ export function Today() {
       </Card>
 
       <PillButton className="w-full mt-8" onClick={() => open({ kind: 'reflect' })}>
-        {reflected ? 'Review Your Day' : 'Log Your Day'}
+        {reflected ? 'Update Your Day' : 'Log Your Day'}
       </PillButton>
     </div>
   )
