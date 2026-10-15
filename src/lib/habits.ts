@@ -1,12 +1,17 @@
-// The 8 daily habit items, the settings that shape them, and how a day's log
+// The daily habit items, the settings that shape them, and how a day's log
 // turns into done / partial / nothing-yet for each one.
 
 import { timeToMin } from './date'
 
 export type HabitId =
-  | 'prayAM' | 'stretch' | 'jumprope' | 'pushups' | 'situps' | 'journal' | 'meditate' | 'prayPM'
+  | 'meditateAM' | 'teethAM' | 'prayAM' | 'stretch' | 'jumprope' | 'pushups' | 'situps' | 'journal' | 'meditate' | 'prayPM'
+  | 'shower' | 'teethPM'
+export type TapId = 'teethAM' | 'prayAM' | 'prayPM' | 'shower' | 'teethPM'
 export type CounterId = 'pushups' | 'situps'
 export type RangeId = 'jumprope' | 'journal' | 'meditate'
+/** Timed habits. Both meditations share the 'meditate' range. */
+export type TimerId = RangeId | 'meditateAM'
+export const rangeFor = (id: TimerId): RangeId => (id === 'meditateAM' ? 'meditate' : id)
 export type Kind = 'tap' | 'counter' | 'timer' | 'stretch'
 
 export interface Habit {
@@ -16,14 +21,18 @@ export interface Habit {
 }
 
 export const HABITS: Habit[] = [
+  { id: 'meditateAM', name: 'Morning meditation', kind: 'timer' },
   { id: 'prayAM', name: 'Morning prayer', kind: 'tap' },
+  { id: 'teethAM', name: 'Brush teeth (morning)', kind: 'tap' },
   { id: 'stretch', name: 'Stretch', kind: 'stretch' },
   { id: 'jumprope', name: 'Jump rope', kind: 'timer' },
   { id: 'pushups', name: 'Pushups', kind: 'counter' },
   { id: 'situps', name: 'Sit-ups', kind: 'counter' },
   { id: 'journal', name: 'Journal', kind: 'timer' },
-  { id: 'meditate', name: 'Meditate', kind: 'timer' },
+  { id: 'meditate', name: 'Evening meditation', kind: 'timer' },
   { id: 'prayPM', name: 'Evening prayer', kind: 'tap' },
+  { id: 'shower', name: 'Shower', kind: 'tap' },
+  { id: 'teethPM', name: 'Brush teeth (night)', kind: 'tap' },
 ]
 
 export const HABIT_BY_ID = Object.fromEntries(HABITS.map((h) => [h.id, h])) as Record<HabitId, Habit>
@@ -31,7 +40,9 @@ export const HABIT_BY_ID = Object.fromEntries(HABITS.map((h) => [h.id, h])) as R
 export interface Range { min: number; max: number }
 
 export interface Times {
+  meditateAM: string
   prayAM: string
+  teethAM: string
   stretch: string
   jumprope: string
   /** Pushup + sit-up set reminders. */
@@ -39,6 +50,8 @@ export interface Times {
   journal: string
   meditate: string
   prayPM: string
+  shower: string
+  teethPM: string
   reflect: string
 }
 
@@ -59,16 +72,20 @@ export const DEFAULT_SETTINGS: Settings = {
   ranges: {
     jumprope: { min: 2, max: 5 },
     journal: { min: 2, max: 5 },
-    meditate: { min: 5, max: 10 },
+    meditate: { min: 2, max: 5 },
   },
   times: {
-    prayAM: '07:30',
+    meditateAM: '07:15',
+    prayAM: '07:25',
+    teethAM: '07:30',
     stretch: '07:40',
     jumprope: '08:00',
     sets: ['10:00', '13:00', '16:00', '19:00'],
     journal: '21:00',
     meditate: '21:15',
     prayPM: '21:30',
+    shower: '21:45',
+    teethPM: '22:00',
     reflect: '21:40',
   },
   theme: 'light',
@@ -78,7 +95,7 @@ export interface DayLog {
   /** Each tap of +5/+10/+25, so undo can pop the last one. */
   adds: Partial<Record<CounterId, number[]>>
   /** Seconds logged for timed habits (stretch included). */
-  secs: Partial<Record<RangeId | 'stretch', number>>
+  secs: Partial<Record<TimerId | 'stretch', number>>
   /** Explicit completion for prayers, timers and the stretch flow. */
   done: Partial<Record<HabitId, boolean>>
   journal?: string
@@ -103,8 +120,10 @@ export function habitStatus(h: HabitId, log: DayLog | undefined, s: Settings): S
     return n >= counterTarget(s, h) ? 'done' : n > 0 ? 'partial' : 'none'
   }
   if (log.done[h]) return 'done'
-  if (h === 'prayAM' || h === 'prayPM') return 'none'
-  return (log.secs[h] ?? 0) > 0 ? 'partial' : 'none'
+  if (h === 'stretch' || h === 'jumprope' || h === 'journal' || h === 'meditate' || h === 'meditateAM') {
+    return (log.secs[h] ?? 0) > 0 ? 'partial' : 'none'
+  }
+  return 'none'
 }
 
 export function doneCount(log: DayLog | undefined, s: Settings): number {
@@ -135,7 +154,12 @@ export function reminders(s: Settings): Reminder[] {
   const pu = Math.ceil(s.pushupTarget / sets)
   const su = Math.ceil(s.situpTarget / sets)
   const list: Reminder[] = [
+    {
+      id: 'meditateAM', time: t.meditateAM,
+      title: `Meditate ${s.ranges.meditate.min}–${s.ranges.meditate.max} min`, habits: ['meditateAM'],
+    },
     { id: 'prayAM', time: t.prayAM, title: 'Morning prayer', habits: ['prayAM'] },
+    { id: 'teethAM', time: t.teethAM, title: 'Brush teeth', habits: ['teethAM'] },
     { id: 'stretch', time: t.stretch, title: 'Stretch', habits: ['stretch'] },
     {
       id: 'jumprope', time: t.jumprope,
@@ -153,6 +177,8 @@ export function reminders(s: Settings): Reminder[] {
       title: `Meditate ${s.ranges.meditate.min}–${s.ranges.meditate.max} min`, habits: ['meditate'],
     },
     { id: 'prayPM', time: t.prayPM, title: 'Evening prayer', habits: ['prayPM'] },
+    { id: 'shower', time: t.shower, title: 'Shower', habits: ['shower'] },
+    { id: 'teethPM', time: t.teethPM, title: 'Brush teeth', habits: ['teethPM'] },
     { id: 'reflect', time: t.reflect, title: 'Log your day', habits: [] },
   ]
   return list.sort((a, b) => timeToMin(a.time) - timeToMin(b.time))

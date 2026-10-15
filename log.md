@@ -241,3 +241,25 @@ up reference URLs for the two restored stretches. Live run: 13 stretches, 12
 with photos (Rag Doll still has none), "15:00", 900s saved. 17/17 tests.
 - 2026-10-15: Rag Doll photo added (Tommy's image, rag-doll.jpg). All 13 stretches now have photos.
 - 2026-10-15: Added Upper Trap back (20s per side, v1 photo) at the start of Phase 3. Clasped Chest 65→45 (one rest prompt at 22s) and Rag Doll 55→29 (roll-up at 19s) to stay at exactly 15:00. 14 stretches, verified live.
+
+## 2026-10-15 change | brush teeth (AM/PM) + shower
+
+Added three tap habits: Brush teeth (morning) 07:20, Shower 21:45 and Brush
+teeth (night) 22:00, which makes 11 habits. Tommy chose a good habit day of 7+
+of 11 (GOOD_HABIT_DAY = 7). Good reflection day stays 5+ of 8 dimensions
+(GOOD_REFLECTION_DAY = 5). togglePrayer became toggleTap; habitStatus no longer
+special-cases prayers. Saved settings without the new times fill them in
+from defaults (checked live). The calendar file now has 14 events.
+17/17 tests, clean build.
+
+## 2026-10-15 change | morning meditation, new morning order, meditation 2–5 min
+
+New timer habit `meditateAM` "Morning meditation" at 07:15. Morning order is
+now meditation 07:15 → prayer 07:25 → brush teeth 07:30 → stretch 07:40. The
+old "Meditate" became "Evening meditation". Both meditations share
+ranges.meditate (TimerId + rangeFor()), and the default range changed 5–10 →
+2–5. 12 habits; good habit day stays 7+. Persist version 1 → 2 with a
+migrate() that moves saved settings still on the old defaults (prayer/teeth
+times, 5–10 meditation). Checked live with v1 data, and a morning meditation
+run saved under meditateAM only. 18/18 tests, clean build. The .ics now has
+15 events.

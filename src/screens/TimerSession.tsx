@@ -2,24 +2,25 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useClock } from '../hooks'
 import { dateKey, formatSecs } from '../lib/date'
 import { encouragement } from '../lib/encourage'
-import { HABIT_BY_ID, randomDurationSec, type RangeId } from '../lib/habits'
+import { HABIT_BY_ID, randomDurationSec, rangeFor, type TimerId } from '../lib/habits'
 import { buzzer, unlockAudio } from '../lib/sound'
 import { useWakeLock } from '../lib/wakeLock'
 import { useStore } from '../store/useStore'
 import { useUi } from '../store/useUi'
 import { BackButton, PillButton, Sheet } from '../components/ui'
 
-const DOING: Record<RangeId, string> = { jumprope: 'jump rope', journal: 'journaling', meditate: 'meditation' }
+const DOING: Record<TimerId, string> = { jumprope: 'jump rope', journal: 'journaling', meditate: 'meditation', meditateAM: 'meditation' }
 
-const PROMPTS: Partial<Record<RangeId, string>> = {
+const PROMPTS: Partial<Record<TimerId, string>> = {
   journal: 'Write whatever comes. No rules, no editing.',
   meditate: 'Close your eyes. Breathe in for four, out for six.',
+  meditateAM: 'Close your eyes. Breathe in for four, out for six.',
   jumprope: 'Light on your feet. Any pace counts.',
 }
 
-export function TimerSession({ id }: { id: RangeId }) {
+export function TimerSession({ id }: { id: TimerId }) {
   const habit = HABIT_BY_ID[id]
-  const range = useStore((s) => s.settings.ranges[id])
+  const range = useStore((s) => s.settings.ranges[rangeFor(id)])
   const addSecs = useStore((s) => s.addSecs)
   const setJournal = useStore((s) => s.setJournal)
   const close = useUi((s) => () => s.open(null))

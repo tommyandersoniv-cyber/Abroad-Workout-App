@@ -1,10 +1,10 @@
 // Transient UI state: which tab/overlay is open and the toast line.
 
 import { create } from 'zustand'
-import type { RangeId } from '../lib/habits'
+import type { TimerId } from '../lib/habits'
 
 export type Overlay =
-  | { kind: 'timer'; id: RangeId }
+  | { kind: 'timer'; id: TimerId }
   | { kind: 'stretch' }
   | { kind: 'settings' }
   | { kind: 'reflect' }

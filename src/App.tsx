@@ -101,7 +101,7 @@ function Celebration() {
         />
       ))}
       <div className="text-center anim-pop">
-        <div className="font-serif text-[44px] font-bold leading-tight">All 8. A full day.</div>
+        <div className="font-serif text-[44px] font-bold leading-tight">All {HABITS.length}. A full day.</div>
         <p className="text-muted text-[17px] mt-3">Every habit, done. This is who you’re becoming.</p>
         <PillButton className="mt-8 px-10" onClick={() => setShow(false)}>Thank you</PillButton>
       </div>

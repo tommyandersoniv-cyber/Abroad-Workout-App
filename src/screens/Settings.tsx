@@ -7,10 +7,11 @@ import { useStore } from '../store/useStore'
 import { useUi } from '../store/useUi'
 import { BackButton, Card, PillButton, Sheet } from '../components/ui'
 
-const RANGE_LABELS: Record<RangeId, string> = { jumprope: 'Jump rope', journal: 'Journal', meditate: 'Meditate' }
+const RANGE_LABELS: Record<RangeId, string> = { jumprope: 'Jump rope', journal: 'Journal', meditate: 'Meditation (morning + evening)' }
 const TIME_LABELS: [keyof Omit<Times, 'sets'>, string][] = [
-  ['prayAM', 'Morning prayer'], ['stretch', 'Stretch'], ['jumprope', 'Jump rope'], ['journal', 'Journal'],
-  ['meditate', 'Meditate'], ['prayPM', 'Evening prayer'], ['reflect', 'Log your day'],
+  ['meditateAM', 'Morning meditation'], ['prayAM', 'Morning prayer'], ['teethAM', 'Brush teeth (morning)'], ['stretch', 'Stretch'], ['jumprope', 'Jump rope'], ['journal', 'Journal'],
+  ['meditate', 'Evening meditation'], ['prayPM', 'Evening prayer'], ['reflect', 'Log your day'],
+  ['shower', 'Shower'], ['teethPM', 'Brush teeth (night)'],
 ]
 
 /** Number field that only commits a clean value on blur. */

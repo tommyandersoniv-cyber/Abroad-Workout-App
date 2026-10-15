@@ -4,8 +4,8 @@ import {
   dateKey, fromKey, isCurrentOrFuture, monthKeys, periodLabel, shiftPeriod, weekKeys, weekStart, type DayKey,
 } from '../lib/date'
 import { DIMENSIONS } from '../lib/dimensions'
-import type { Status } from '../lib/habits'
-import { GOOD_DAY, WEEKLY_GOAL, dimensionDays, isGoodHabitDay, isGoodReflectionDay } from '../lib/stats'
+import { HABITS, type Status } from '../lib/habits'
+import { GOOD_HABIT_DAY, GOOD_REFLECTION_DAY, WEEKLY_GOAL, dimensionDays, isGoodHabitDay, isGoodReflectionDay } from '../lib/stats'
 import { useStore } from '../store/useStore'
 import { Card, Icon } from '../components/ui'
 
@@ -169,7 +169,7 @@ function MonthView({ anchor, now }: { anchor: Date; now: Date }) {
           <span className="font-serif text-[22px] font-bold">
             {goodCount} <span className="font-sans text-[15px] font-normal text-muted">good {goodCount === 1 ? 'day' : 'days'}</span>
           </span>
-          <span className="text-[12px] text-faint">{GOOD_DAY}+ of 8 {kind === 'habits' ? 'habits' : 'dimensions'}</span>
+          <span className="text-[12px] text-faint">{kind === 'habits' ? `${GOOD_HABIT_DAY}+ of ${HABITS.length} habits` : `${GOOD_REFLECTION_DAY}+ of 8 dimensions`}</span>
         </div>
         <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] text-faint mb-2">
           {DOW.map((d, i) => <span key={i}>{d}</span>)}

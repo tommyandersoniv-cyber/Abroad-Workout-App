@@ -3,7 +3,7 @@ import { dateKey, formatSecs, formatTime, longDate, timeToMin } from '../lib/dat
 import { encouragement } from '../lib/encourage'
 import {
   HABITS, counterTarget, counterTotal, doneCount, habitStatus, habitTime, habitsInOrder, upNext,
-  type CounterId, type Habit, type RangeId,
+  rangeFor, type CounterId, type Habit, type TapId, type TimerId,
 } from '../lib/habits'
 import { STRETCHES, STRETCH_TOTAL_SEC } from '../lib/stretch'
 import { useStore } from '../store/useStore'
@@ -59,7 +59,7 @@ export function Todo() {
 function HabitRow({ habit, today, nowMin }: { habit: Habit; today: string; nowMin: number }) {
   const settings = useStore((s) => s.settings)
   const log = useStore((s) => s.days[today])
-  const togglePrayer = useStore((s) => s.togglePrayer)
+  const toggleTap = useStore((s) => s.toggleTap)
   const open = useUi((s) => s.open)
   const say = useUi((s) => s.say)
   const status = habitStatus(habit.id, log, settings)
@@ -73,16 +73,16 @@ function HabitRow({ habit, today, nowMin }: { habit: Habit; today: string; nowMi
   if (habit.kind === 'tap') {
     action = () => {
       const turningOn = status !== 'done'
-      togglePrayer(today, habit.id as 'prayAM' | 'prayPM')
+      toggleTap(today, habit.id as TapId)
       if (turningOn) say(encouragement())
     }
   } else if (habit.kind === 'timer') {
-    const r = settings.ranges[habit.id as RangeId]
-    const secs = log?.secs[habit.id as RangeId] ?? 0
+    const r = settings.ranges[rangeFor(habit.id as TimerId)]
+    const secs = log?.secs[habit.id as TimerId] ?? 0
     sub = status === 'done'
       ? (secs ? `${formatSecs(secs)} today` : 'Done today')
       : `${r.min}–${r.max} min · ${formatTime(time)}${secs ? ` · ${formatSecs(secs)} so far` : ''}`
-    action = () => open({ kind: 'timer', id: habit.id as RangeId })
+    action = () => open({ kind: 'timer', id: habit.id as TimerId })
   } else {
     const mins = Math.round(STRETCH_TOTAL_SEC / 60)
     const secs = log?.secs.stretch ?? 0

@@ -15,15 +15,15 @@ const S = DEFAULT_SETTINGS
 function fullDay(): DayLog {
   return {
     adds: { pushups: [100], situps: [100] },
-    secs: { stretch: 480, jumprope: 180, journal: 180, meditate: 400 },
-    done: { prayAM: true, prayPM: true, stretch: true, jumprope: true, journal: true, meditate: true },
+    secs: { stretch: 480, jumprope: 180, journal: 180, meditate: 400, meditateAM: 200 },
+    done: { meditateAM: true, teethAM: true, prayAM: true, prayPM: true, shower: true, teethPM: true, stretch: true, jumprope: true, journal: true, meditate: true },
   }
 }
 /** A day with exactly n habits done (in HABITS order). */
 function dayWith(n: number): DayLog {
   const f = fullDay()
   const d = emptyDay()
-  const order = ['prayAM', 'stretch', 'jumprope', 'pushups', 'situps', 'journal', 'meditate', 'prayPM'] as const
+  const order = ['meditateAM', 'prayAM', 'teethAM', 'stretch', 'jumprope', 'pushups', 'situps', 'journal', 'meditate', 'prayPM', 'shower', 'teethPM'] as const
   for (const id of order.slice(0, n)) {
     if (id === 'pushups' || id === 'situps') d.adds[id] = f.adds[id]
     else d.done[id] = true
@@ -72,6 +72,11 @@ describe('habits', () => {
     expect(habitStatus('journal', { ...emptyDay(), secs: { journal: 200 }, done: { journal: true } }, S)).toBe('done')
     expect(habitStatus('prayAM', { ...emptyDay(), done: { prayAM: true } }, S)).toBe('done')
   })
+  it('both meditations share one 2–5 min range by default', () => {
+    expect(S.ranges.meditate).toEqual({ min: 2, max: 5 })
+    expect(habitStatus('meditateAM', { ...emptyDay(), secs: { meditateAM: 30 } }, S)).toBe('partial')
+    expect(habitStatus('meditate', { ...emptyDay(), secs: { meditateAM: 30 } }, S)).toBe('none')
+  })
   it('random duration stays inside the range', () => {
     const r = { min: 5, max: 10 }
     expect(randomDurationSec(r, () => 0)).toBe(300)
@@ -89,13 +94,13 @@ describe('habits', () => {
   })
   it('Today order follows the reminder schedule', () => {
     expect(habitsInOrder(S.times).map((h) => h.id)).toEqual([
-      'prayAM', 'stretch', 'jumprope', 'pushups', 'situps', 'journal', 'meditate', 'prayPM',
+      'meditateAM', 'prayAM', 'teethAM', 'stretch', 'jumprope', 'pushups', 'situps', 'journal', 'meditate', 'prayPM', 'shower', 'teethPM',
     ])
   })
   it('up next skips what is already done', () => {
-    const log = { ...emptyDay(), done: { prayAM: true } }
+    const log = { ...emptyDay(), done: { meditateAM: true, prayAM: true, teethAM: true } }
     expect(upNext(S, log, false, 7 * 60)?.id).toBe('stretch')
-    expect(upNext(S, emptyDay(), false, 22 * 60)?.id).toBe('prayAM') // wraps to earliest open
+    expect(upNext(S, emptyDay(), false, 22 * 60 + 30)?.id).toBe('meditateAM') // wraps to earliest open
     expect(upNext(S, fullDay(), true, 12 * 60)).toBeNull()
   })
 })
@@ -103,10 +108,10 @@ describe('habits', () => {
 describe('stats', () => {
   const now = new Date(2026, 9, 14)
   const wk = weekKeys(now)
-  it('good days need 5 of 8', () => {
-    expect(isGoodHabitDay(dayWith(4), S)).toBe(false)
-    expect(isGoodHabitDay(dayWith(5), S)).toBe(true)
-    expect(doneCount(fullDay(), S)).toBe(8)
+  it('good habit days need 7 of 12; good reflection days need 5 of 8', () => {
+    expect(isGoodHabitDay(dayWith(6), S)).toBe(false)
+    expect(isGoodHabitDay(dayWith(7), S)).toBe(true)
+    expect(doneCount(fullDay(), S)).toBe(12)
     expect(isGoodReflectionDay(['body', 'mind', 'heart', 'soul'])).toBe(false)
     expect(isGoodReflectionDay(['body', 'mind', 'heart', 'soul', 'give'])).toBe(true)
   })
@@ -134,7 +139,7 @@ describe('calendar file', () => {
   const events = ics.split('BEGIN:VEVENT').slice(1)
   it('has one daily repeating event with an alarm per reminder', () => {
     expect(events).toHaveLength(reminders(S).length)
-    expect(events).toHaveLength(11)
+    expect(events).toHaveLength(15)
     for (const e of events) {
       expect(e).toContain('RRULE:FREQ=DAILY')
       expect(e).toContain('BEGIN:VALARM')
@@ -142,14 +147,15 @@ describe('calendar file', () => {
     }
   })
   it('uses floating local times and CRLF line endings', () => {
-    expect(ics).toContain('DTSTART:20261014T073000\r\n')
+    expect(ics).toContain('DTSTART:20261014T071500\r\n')
+    expect(ics).toContain('DTSTART:20261014T220000\r\n')
     expect(ics).toContain('DTSTART:20261014T214000\r\n')
     expect(ics).not.toMatch(/DTSTART[^\r]*Z/)
     expect(ics).not.toContain('TZID')
     expect(ics.split('\r\n').every((l) => new TextEncoder().encode(l).length <= 75)).toBe(true)
   })
   it('reflects edited times and targets', () => {
-    const edited = buildIcs({ ...S, pushupTarget: 80, times: { ...S.times, prayAM: '06:15' } }, new Date(2026, 9, 14))
+    const edited = buildIcs({ ...S, pushupTarget: 80, times: { ...S.times, meditateAM: '06:15' } }, new Date(2026, 9, 14))
     expect(edited).toContain('DTSTART:20261014T061500')
     expect(edited).toContain('SUMMARY:20 pushups + 25 sit-ups')
   })

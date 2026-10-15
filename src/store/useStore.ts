@@ -6,10 +6,10 @@ import { persist } from 'zustand/middleware'
 import type { DayKey } from '../lib/date'
 import type { DimensionId } from '../lib/dimensions'
 import {
-  DEFAULT_SETTINGS, emptyDay, type CounterId, type DayLog, type HabitId, type RangeId, type Settings,
+  DEFAULT_SETTINGS, emptyDay, type CounterId, type DayLog, type HabitId, type Settings, type TapId, type TimerId,
 } from '../lib/habits'
 
-type TimedId = RangeId | 'stretch'
+type TimedId = TimerId | 'stretch'
 
 interface State {
   settings: Settings
@@ -19,7 +19,7 @@ interface State {
   addCount: (day: DayKey, id: CounterId, n: number) => void
   undoCount: (day: DayKey, id: CounterId) => void
   addSecs: (day: DayKey, id: TimedId, secs: number, finished: boolean) => void
-  togglePrayer: (day: DayKey, id: 'prayAM' | 'prayPM') => void
+  toggleTap: (day: DayKey, id: TapId) => void
   setJournal: (day: DayKey, text: string) => void
   toggleDimension: (day: DayKey, id: DimensionId) => void
   updateSettings: (patch: Partial<Settings>) => void
@@ -52,7 +52,7 @@ export const useStore = create<State>()(
             done: finished ? { ...d.done, [id as HabitId]: true } : d.done,
           })),
         })),
-      togglePrayer: (day, id) =>
+      toggleTap: (day, id) =>
         set((s) => ({ days: withDay(s.days, day, (d) => ({ ...d, done: { ...d.done, [id]: !d.done[id] } })) })),
       setJournal: (day, text) =>
         set((s) => ({ days: withDay(s.days, day, (d) => ({ ...d, journal: text })) })),
@@ -66,7 +66,21 @@ export const useStore = create<State>()(
     }),
     {
       name: 'fullday-v1',
-      version: 1,
+      version: 2,
+      // v2: morning order became meditation → prayer → teeth, and meditation
+      // started at 2–5 min. Update saved settings still on the old defaults.
+      migrate: (persisted, version) => {
+        const p = (persisted ?? {}) as Partial<State>
+        const st = p.settings
+        if (version < 2 && st) {
+          const t = { ...st.times }
+          if (t.prayAM === '07:30' && t.teethAM === '07:20') Object.assign(t, { prayAM: '07:25', teethAM: '07:30' })
+          const m = st.ranges?.meditate
+          const ranges = m && m.min === 5 && m.max === 10 ? { ...st.ranges, meditate: { min: 2, max: 5 } } : st.ranges
+          p.settings = { ...st, times: t, ranges }
+        }
+        return p as State
+      },
       // Fill in any settings added after a user's data was first saved.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<State>
